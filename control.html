@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Overlay · Control</title>
+<style>
+:root{
+  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd; --border:#243041;
+  --panel:#0f1320; --control:#12172a; --radius:16px; --pad:14px; --gap:70px;
+  --card-w:640px; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+  --card-blur:8px; --card-backdrop:rgba(16,19,27,.55); --card-shadow:0 12px 30px rgba(0,0,0,.35);
+  --lyr-blur:8px; --lyr-backdrop:rgba(16,19,27,.30); --lyr-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box} html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font)}
+.app{display:grid;grid-template-columns:320px 1fr;height:100%}
+.panel{padding:16px;border-right:1px solid var(--border);background:var(--panel);overflow:auto}
+.panel h2{font-size:16px;margin:8px 0 12px}
+.row{display:flex;align-items:center;gap:8px;margin:10px 0}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.btn{padding:8px 10px;border:1px solid var(--border);background:var(--control);color:var(--fg);border-radius:10px;cursor:pointer}
+input[type="text"],input[type="url"]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b0f1a;color:var(--fg)}
+.small{color:var(--muted);font-size:12px}
+
+.stage{padding:18px;overflow:auto}
+.now-wrap{display:grid;grid-template-columns:var(--card-w) minmax(28ch, 42ch);gap:var(--gap);align-items:center}
+.card{width:var(--card-w);border:1px solid var(--border);border-radius:var(--radius);padding:var(--pad);
+      backdrop-filter:blur(var(--card-blur));-webkit-backdrop-filter:blur(var(--card-blur));
+      background:var(--card-backdrop);box-shadow:var(--card-shadow)}
+.np{display:grid;gap:16px;grid-template-columns:180px 1fr;align-items:center}
+.np-cover{width:180px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.np-cover img{width:100%;height:100%;object-fit:cover}
+.np-title{font-weight:800;font-size:22px;line-height:1.3}
+.np-artist{opacity:.85;font-size:14px;margin-top:2px}
+.np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
+.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:#12172a;display:grid;place-items:center}
+.np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
+.np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
+.np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
+.np-barline.active{opacity:1}
+.lyrics{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--lyr-backdrop);
+        backdrop-filter:blur(var(--lyr-blur));-webkit-backdrop-filter:blur(var(--lyr-blur));box-shadow:var(--lyr-shadow);
+        width:max-content;min-width:28ch;max-width:min(70ch,96vw);max-height:calc(100vh - 80px);overflow:auto;white-space:pre-wrap;line-height:1.55}
+.lyrics h3{margin:0 0 8px 0;font-size:16px;color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <h2>데이터 API</h2>
+    <div class="row">
+      <input id="apiInput" type="url" placeholder="Apps Script /exec URL 붙여넣기 (예: https://script.google.com/.../exec)" />
+    </div>
+    <div class="row"><button class="btn" id="saveApi">API 저장</button><span class="small" id="apiStat"></span></div>
+
+    <h2>테마</h2>
+    <div class="seg" id="themeSeg">
+      <button data-theme="dark"  class="btn">다크</button>
+      <button data-theme="light" class="btn">라이트</button>
+    </div>
+
+    <h2>동작</h2>
+    <div class="seg">
+      <button class="btn" id="copyOverlay">오버레이 링크 복사</button>
+      <button class="btn" id="openLyricsPopup">가사 팝업 열기</button>
+    </div>
+    <div class="small" id="status"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="now-wrap">
+      <div class="card">
+        <div class="np">
+          <div class="np-cover">
+            <!-- ✅ 고정 커버 -->
+            <img id="cover" alt="Album cover" src="./haming.png"/>
+          </div>
+          <div class="np-main">
+            <div class="np-title" id="title">불러오는 중…</div>
+            <div class="np-artist" id="sub"></div>
+            <div class="np-ctrls">
+              <div class="np-btn">⏮</div>
+              <div class="np-btn primary">▶</div>
+              <div class="np-btn">⏭</div>
+            </div>
+            <div class="np-wave" id="wave"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lyrics">
+        <h3>가사</h3>
+        <div id="lyrics">가사가 여기에 표시됩니다.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  /* ===== API 저장/복원 ===== */
+  const qs = new URLSearchParams(location.search);
+  const stored = localStorage.getItem('overlay_api') || '';
+  const API = qs.get('api') || stored || '';
+  $('apiInput').value = API;
+  $('saveApi').onclick = () => {
+    const v = $('apiInput').value.trim();
+    if(!v){ $('apiStat').textContent='입력 없음'; return; }
+    localStorage.setItem('overlay_api', v);
+    $('apiStat').textContent = '저장됨';
+  };
+
+  /* ===== 테마 ===== */
+  function setTheme(t){
+    if (t==='light'){
+      document.documentElement.style.setProperty('--bg','#f5f7fb');
+      document.documentElement.style.setProperty('--fg','#0b0b0f');
+      document.documentElement.style.setProperty('--border','#cfd6e3');
+      document.documentElement.style.setProperty('--panel','#f0f3fb');
+      document.documentElement.style.setProperty('--control','#ffffff');
+      document.documentElement.style.setProperty('--card-backdrop','rgba(255,255,255,.75)');
+      document.documentElement.style.setProperty('--lyr-backdrop','rgba(255,255,255,.6)');
+    }else{
+      document.documentElement.style.cssText = '';
+    }
+    localStorage.setItem('overlay_theme', t);
+  }
+  setTheme(localStorage.getItem('overlay_theme') || 'dark');
+  $('themeSeg').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    setTheme(b.dataset.theme);
+  });
+
+  /* ===== 오버레이 링크 복사 (방송 전용 페이지로 생성) ===== */
+  $('copyOverlay').onclick = () => {
+    const api = ($('apiInput').value || '').trim();
+    if(!api){ alert('API URL을 먼저 저장하세요.'); return; }
+    const theme = localStorage.getItem('overlay_theme') || 'dark';
+    // overlay.html?api=...&theme=...
+    const base = location.origin + location.pathname.replace(/\/control\.html$/,'/overlay.html');
+    const url  = `${base}?api=${encodeURIComponent(api)}&theme=${encodeURIComponent(theme)}`;
+    navigator.clipboard.writeText(url).then(()=>{
+      $('status').textContent = '오버레이 링크 복사 완료';
+      setTimeout(()=>{$('status').textContent='';}, 2000);
+    });
+  };
+
+  /* ===== 가사 팝업 ===== */
+  $('openLyricsPopup').onclick = () => {
+    const api = ($('apiInput').value || '').trim();
+    if(!api){ alert('API URL을 먼저 저장하세요.'); return; }
+    const w = window.open('', 'lyrics_popup', 'width=420,height=700,resizable=yes,scrollbars=yes');
+    const html = `
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가사</title>
+<style>
+  :root{ --bg:#0b0b0f; --fg:#f5f7fb; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; }
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font)}
+  #wrap{height:100%;box-sizing:border-box;padding:24px 26px;}
+  #lyrics{white-space:pre-wrap;line-height:1.7;font-size:20px;overflow:auto;height:100%;}
+</style></head><body>
+<div id="wrap"><div id="lyrics">불러오는 중…</div></div>
+<script>
+  const API=${JSON.stringify(api)};
+  async function fetchJson(url){ const r=await fetch(url,{cache:'no-store'}); const ct=r.headers.get('content-type')||''; if(ct.includes('application/json')) return r.json(); return JSON.parse(await r.text()); }
+  async function tick(){ try{ const d=await fetchJson(API+'?nocache='+Date.now()); document.getElementById('lyrics').textContent=(d&&d.lyrics)?String(d.lyrics).trim():'가사가 없습니다.'; }catch(e){} }
+  tick(); setInterval(tick, 2000);
+<\/script></body></html>`;
+    w.document.open(); w.document.write(html); w.document.close();
+  };
+
+  /* ===== 파형 ===== */
+  const wave = document.getElementById('wave');
+  if (wave){
+    const bars=40;
+    const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
+    const els = heights.map(h=>{
+      const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d;
+    });
+    let idx=0; setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
+  }
+
+  /* ===== 데이터 폴링 (미리보기/가사) ===== */
+  async function fetchJson(url){
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    return JSON.parse(await res.text());
+  }
+  async function tick(init){
+    if (!API){ $('status').textContent='API 미설정'; return; }
+    try{
+      const d = await fetchJson(API + '?nocache=' + Date.now());
+      const singer = (d && d.singer) ? String(d.singer).trim() : '';
+      const title  = (d && d.title ) ? String(d.title ).trim()  : '';
+      const lyrics = (d && d.lyrics) ? String(d.lyrics).trim() : '';
+      $('title').textContent = title || singer || '체크된 곡이 없습니다';
+      $('sub').textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
+      $('lyrics').textContent= lyrics || '가사가 없습니다.';
+      $('status').textContent='연결 OK';
+    }catch(e){
+      if (init){ $('title').textContent='불러오기에 실패했어요'; $('sub').textContent=''; $('lyrics').textContent=''; }
+      $('status').textContent='연결 실패';
+    }
+  }
+  tick(true); setInterval(tick, 2000);
+})();
+</script>
+</body>
+</html>
