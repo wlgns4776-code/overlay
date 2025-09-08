@@ -1,191 +1,255 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>오버레이 컨트롤</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overlay Control</title>
 <style>
 :root{
-  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd; --panel:#0f1320; --border:#243041;
-  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd;
+  --panel:#0f1320; --line:#243041;
+  --radius:16px; --pad:14px;
+  --card-w:640px;
+  /* preview card defaults (동일 변수) */
+  --card-backdrop: rgba(16,19,27,0.55);
+  --card-blur: 8px;
+  --card-shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
+.page{display:grid;grid-template-columns:320px 1fr;height:100%}
+.left{border-right:1px solid var(--line);background:var(--panel);padding:16px;overflow:auto}
+.right{padding:18px;overflow:auto}
 
-.app{display:grid;grid-template-columns:320px 1fr; min-height:100vh}
-.side{padding:16px;border-right:1px solid var(--border);background:var(--panel);overflow:auto}
-.main{padding:16px;overflow:auto}
-
-h2{font-size:16px;margin:12px 0}
-.row{display:flex;align-items:center;gap:8px;margin:8px 0}
-.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.seg button{padding:8px 10px;border:1px solid var(--border);background:#12172a;color:var(--fg);
-  border-radius:10px;cursor:pointer;font-size:13px;white-space:nowrap}
-.seg button.active{outline:2px solid var(--fg)}
+h2{font-size:16px;margin:10px 0 12px}
+.row{display:flex;align-items:center;gap:8px;margin:10px 0}
+input[type="color"]{width:56px;height:32px;border:1px solid var(--line);border-radius:8px;background:transparent}
 input[type="range"]{width:100%}
-input[type="color"]{width:56px;height:32px;border:1px solid var(--border);border-radius:8px;padding:0;background:transparent}
-.btn{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#12172a;color:var(--fg);cursor:pointer}
-.small{font-size:12px;color:var(--muted)}
-input[type="text"]{width:100%;padding:8px;border:1px solid var(--border);background:#0b0f1a;color:var(--fg);border-radius:8px}
-iframe{width:100%;height:260px;border:none;border-radius:12px;background:#0000}
+.btn{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#12172a;color:var(--fg);cursor:pointer}
+.muted{color:var(--muted)} .small{font-size:12px}
+
+/* 프리뷰 카드 (overlay와 동일) */
+.card{
+  width:var(--card-w);
+  max-width:var(--card-w);
+  min-width:var(--card-w);
+  border-radius:var(--radius);
+  padding:var(--pad);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  background:var(--card-backdrop);
+  box-shadow:var(--card-shadow);
+}
+.np{display:grid;gap:16px;grid-template-columns:180px 1fr;align-items:center}
+.np-cover{width:180px;aspect-ratio:1/1;border-radius:14px;background:#1114;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.np-cover img{width:100%;height:100%;object-fit:cover}
+.np-title{font-weight:800;font-size:22px;line-height:1.3}
+.np-artist{opacity:.85;font-size:14px;margin-top:2px}
+.np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
+.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.08);
+  background:#0d111a;display:grid;place-items:center;color:#e8eefb}
+.np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
+.np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
+.np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
+.np-barline.active{opacity:1}
+
+/* 미리보기 영역 정렬 */
+.previewWrap{min-height:100%;display:grid;place-items:start center}
 </style>
 </head>
 <body>
-<div class="app">
-  <aside class="side">
+<div class="page">
+  <aside class="left">
     <h2>오버레이 기본 주소</h2>
-    <input id="outUrl" type="text" readonly />
-    <div class="row"><button class="btn" id="btnCopy">주소 복사</button></div>
-    <div class="small">이 주소를 방송 프로그램(OBS/프릭샷)의 브라우저 소스로 등록하세요.</div>
-
-    <h2>프리셋</h2>
-    <div class="seg" id="presets">
-      <button data-preset="dark"  class="active">다크</button>
-      <button data-preset="light">라이트</button>
-      <button data-preset="darkA">다크A</button>
+    <div class="row">
+      <input id="baseUrl" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#0b0f1a;color:var(--fg)">
     </div>
-
-    <h2>표시 카드 스타일</h2>
-    <div class="seg" id="shapes">
-      <button data-style="round" class="active">원형</button>
-      <button data-style="square">사각형</button>
+    <div class="row">
+      <button class="btn" id="btnCopy">주소 복사</button>
     </div>
+    <div class="small muted">이 주소를 방송 프로그램(OBS/프릭샷 등)의 브라우저 소스로 등록하세요.</div>
 
     <h2>카드 배경</h2>
-    <div class="row"><label style="width:70px">색상</label>
-      <input id="cardColor" type="color" value="#942AFE"><span id="cardHex" class="small">#942AFE</span></div>
-    <div class="row"><label style="width:70px">투명도</label><input id="cardA" type="range" min="0" max="100" value="55"><span class="small" id="oA">55%</span></div>
-    <div class="row"><label style="width:70px">블러</label><input id="cardB" type="range" min="0" max="30" value="8"><span class="small" id="oB">8px</span></div>
-    <div class="row"><label style="width:70px">그림자</label><input id="cardS" type="range" min="0" max="100" value="35"><span class="small" id="oS">35</span></div>
+    <div class="row">
+      <label style="width:80px">색상</label>
+      <input id="cardColor" type="color" value="#10131b">
+      <span class="muted" id="cardColorHex">#10131B</span>
+    </div>
+    <div class="row"><label style="width:80px">투명도</label><input id="cardAlpha" type="range" min="0" max="100" value="55"><span class="muted" id="cardAlphaOut">55%</span></div>
+    <div class="row"><label style="width:80px">블러</label><input id="cardBlur" type="range" min="0" max="30" value="8"><span class="muted" id="cardBlurOut">8px</span></div>
+    <div class="row"><label style="width:80px">그림자</label><input id="cardShadow" type="range" min="0" max="100" value="35"><span class="muted" id="cardShadowOut">35</span></div>
 
     <h2>동작</h2>
-    <div class="seg">
-      <button class="btn" id="btnPopup">가사 팝업 열기</button>
-    </div>
-    <div class="small" id="status">연결 확인 중…</div>
+    <div class="row"><button class="btn" id="btnLyrics">가사 팝업 열기</button></div>
+    <div class="small muted" id="status">연결 OK</div>
   </aside>
 
-  <main class="main">
-    <h2>미리보기</h2>
-    <iframe id="preview" title="overlay preview"></iframe>
+  <main class="right">
+    <div style="margin-bottom:12px">
+      <label class="small muted">미리보기</label>
+    </div>
+    <div class="previewWrap">
+      <div class="card">
+        <div class="np">
+          <div class="np-cover"><img src="assets/haming.png" alt="cover"></div>
+          <div class="np-main">
+            <div class="np-title" id="pvTitle">불러오는 중…</div>
+            <div class="np-artist" id="pvSub"></div>
+            <div class="np-ctrls">
+              <button class="np-btn" title="이전">⏮</button>
+              <button class="np-btn primary" title="재생/일시정지">▶</button>
+              <button class="np-btn" title="다음">⏭</button>
+            </div>
+            <div class="np-wave" id="pvWave"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
 <script>
-(function(){
-  const $ = (id)=>document.getElementById(id);
+(() => {
+  /* ===== 기본 URL 채우기 ===== */
+  const $ = id => document.getElementById(id);
+  const baseOverlay = new URL('./overlay.html', location.href).href; // https://.../overlay/overlay.html
+  const $baseUrl = $('baseUrl');
+  const $status = $('status');
 
-  /* === 입력(컨트롤) 엘리먼트 === */
-  const $presets = $('presets'); const $shapes = $('shapes');
-  const $cardColor=$('cardColor'), $cardA=$('cardA'), $cardB=$('cardB'), $cardS=$('cardS');
-  const $cardHex=$('cardHex'), $oA=$('oA'), $oB=$('oB'), $oS=$('oS');
-
-  const DEFAULT_OVERLAY = location.origin + location.pathname.replace(/\/[^/]*$/, '') + '/overlay.html';
-  const DEFAULT_COVER   = location.origin + location.pathname.replace(/\/[^/]*$/, '') + '/assets/haming.png';
-
-  // 앱스 스크립트 API는 control.html의 ?api= 로 받기 (네가 붙인 주소 그대로 사용)
+  // 사용자가 넘긴 api 파라미터 유지
   const qs = new URLSearchParams(location.search);
-  const API = qs.get('api') || '';
-  if (!API) $('status').textContent = 'API 미설정: 주소 끝에 ?api=앱스스크립트exec 를 붙여서 이 페이지를 여세요.';
-  else $('status').textContent = '연결 OK';
+  const apiFromQuery = qs.get('api') || '';
+  const overlayUrl = baseOverlay + (apiFromQuery ? `?api=${encodeURIComponent(apiFromQuery)}` : '');
+  $baseUrl.value = overlayUrl;
 
-  /* === 상태 === */
-  let theme='dark', shape='round';
-
-  // 버튼 active 토글
-  function setActive(container, target){
-    [...container.children].forEach(b=>b.classList.remove('active'));
-    target.classList.add('active');
-  }
-  $presets.addEventListener('click', e=>{
-    const b=e.target.closest('button'); if(!b) return;
-    theme=b.dataset.preset; setActive($presets,b); update();
-  });
-  $shapes.addEventListener('click', e=>{
-    const b=e.target.closest('button'); if(!b) return;
-    shape=b.dataset.style; setActive($shapes,b); update();
-  });
-
-  [$cardColor,$cardA,$cardB,$cardS].forEach(el=>el.addEventListener('input', ()=>{
-    $cardHex.textContent = ($cardColor.value||'').toUpperCase();
-    $oA.textContent = $cardA.value+'%';
-    $oB.textContent = $cardB.value+'px';
-    $oS.textContent = $cardS.value;
-    update();
-  }));
-
-  function buildUrl(){
-    const p = new URLSearchParams({
-      api: API,
-      theme, shape,
-      card: $cardColor.value,
-      cardA: $cardA.value,
-      cardB: $cardB.value,
-      cardS: $cardS.value,
-      cover: DEFAULT_COVER,
-      t: Date.now()
-    });
-    return `${DEFAULT_OVERLAY}?${p.toString()}`;
-  }
-
-  function update(){
-    const url = buildUrl();
-    $('outUrl').value = url;
-    $('preview').src = url;
-  }
-
-  // 주소 복사
   $('btnCopy').addEventListener('click', ()=>{
-    navigator.clipboard.writeText($('outUrl').value).then(()=>{
-      $('status').textContent='주소 복사 완료!';
-      setTimeout(()=>{$('status').textContent='연결 OK'}, 1500);
-    });
+    navigator.clipboard.writeText($baseUrl.value);
+    $status.textContent = '주소 복사 완료';
   });
 
-  // 가사 팝업
-  $('btnPopup').addEventListener('click', ()=>{
-    if (!API){ alert('API가 설정되지 않았어요. control.html?api=... 로 이 페이지를 여세요.'); return; }
-    const w = window.open('', 'lyrics_popup',
-      'width=420,height=700,left=60,top=60,resizable=yes,scrollbars=yes');
-    if (!w){ alert('팝업이 차단되었습니다. 허용 후 다시 시도해 주세요.'); return; }
+  /* ===== 프리뷰 파형 ===== */
+  const pvWave = $('pvWave');
+  const bars=40;
+  const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
+  const els = heights.map(h=>{
+    const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px';
+    pvWave.appendChild(d); return d;
+  });
+  let idx=0;
+  setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
+
+  /* ===== 카드 스타일 컨트롤 → localStorage 저장 + 즉시 반영 ===== */
+  const $cardColor=$('cardColor'), $cardColorHex=$('cardColorHex');
+  const $cardAlpha=$('cardAlpha'), $cardAlphaOut=$('cardAlphaOut');
+  const $cardBlur=$('cardBlur'), $cardBlurOut=$('cardBlurOut');
+  const $cardShadow=$('cardShadow'), $cardShadowOut=$('cardShadowOut');
+
+  function hexToRgb(hex){
+    const m = hex.replace('#','');
+    const v = (m.length===3? m.split('').map(x=>x+x).join(''): m);
+    const n = parseInt(v,16);
+    return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+  }
+  function shadowVal(v){ v=Math.max(0,Math.min(100,Number(v))); return `0 ${6+v/4}px ${18+v/2}px rgba(0,0,0,${0.15+v/160})`; }
+
+  function applyCardStyle(){
+    const hex = $cardColor.value || '#10131b';
+    const a = Math.max(0,Math.min(100,Number($cardAlpha.value)))/100;
+    const blur = $cardBlur.value || 8;
+    const sh = $cardShadow.value || 35;
+
+    const {r,g,b} = hexToRgb(hex);
+    document.documentElement.style.setProperty('--card-backdrop', `rgba(${r},${g},${b},${a})`);
+    document.documentElement.style.setProperty('--card-blur', blur+'px');
+    document.documentElement.style.setProperty('--card-shadow', shadowVal(sh));
+
+    // 표시
+    $cardColorHex.textContent = hex.toUpperCase();
+    $cardAlphaOut.textContent = Math.round(a*100)+'%';
+    $cardBlurOut.textContent = blur+'px';
+    $cardShadowOut.textContent = sh;
+
+    // 저장 (오버레이 탭에 실시간 반영)
+    localStorage.setItem('ov.cardColor', hex);
+    localStorage.setItem('ov.cardAlpha', String(Math.round(a*100)));
+    localStorage.setItem('ov.cardBlur',  String(blur));
+    localStorage.setItem('ov.cardShadow', String(sh));
+
+    // storage 이벤트가 같은 탭에선 안뜨므로 수동 트리거
+    window.dispatchEvent(new StorageEvent('storage', { key:'ov.cardColor', newValue:hex }));
+  }
+  [$cardColor,$cardAlpha,$cardBlur,$cardShadow].forEach(el=> el.addEventListener('input', applyCardStyle));
+
+  // 초기값(localStorage → UI 반영)
+  (function initFromStorage(){
+    const hex   = localStorage.getItem('ov.cardColor')  || '#10131b';
+    const alpha = localStorage.getItem('ov.cardAlpha')  || '55';
+    const blur  = localStorage.getItem('ov.cardBlur')   || '8';
+    const sh    = localStorage.getItem('ov.cardShadow') || '35';
+    $cardColor.value  = hex;
+    $cardAlpha.value  = alpha;
+    $cardBlur.value   = blur;
+    $cardShadow.value = sh;
+    applyCardStyle();
+  })();
+
+  /* ===== 프리뷰에 데이터 표시 (선택 – 컨트롤 화면에서도 제목/가수 확인) ===== */
+  const $pvTitle = $('pvTitle'), $pvSub = $('pvSub');
+  const API = apiFromQuery;
+  async function fetchJson(url){
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    const t = await res.text(); try{return JSON.parse(t);}catch{ throw new Error('Not JSON');}
+  }
+  async function tick(init){
+    if (!API){ if (init){ $pvTitle.textContent='API 미설정'; $pvSub.textContent=''; } return; }
+    try{
+      const data = await fetchJson(API + (API.includes('?')?'&':'?') + 'nocache=' + Date.now());
+      const singer = (data && data.singer) ? String(data.singer).trim() : '';
+      const title  = (data && data.title ) ? String(data.title ).trim()  : '';
+      $pvTitle.textContent = title || singer || '체크된 곡이 없습니다';
+      $pvSub.textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
+    }catch(e){
+      if (init){ $pvTitle.textContent='불러오기에 실패했어요'; $pvSub.textContent=''; }
+      console.error(e);
+    }
+  }
+  tick(true); setInterval(tick, 2000);
+
+  /* ===== 가사 팝업 ===== */
+  $('btnLyrics').addEventListener('click', ()=>{
+    if (!API){ alert('API가 설정되어 있지 않습니다. control.html?api= 로 접속하세요.'); return; }
+    const w = window.open('', 'lyrics_popup', 'width=420,height=700,left=80,top=80,resizable=yes,scrollbars=yes');
     const html = `
-<!doctype html><html lang="ko"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>가사</title>
 <style>
-  :root{ --bg:#0b0b0f; --fg:#f5f7fb; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; }
-  html,body{height:100%;margin:0}
-  body{background:var(--bg);color:var(--fg);font-family:var(--font)}
-  #wrap{height:100%;box-sizing:border-box;padding:24px 26px;}
-  #lyrics{white-space:pre-wrap;line-height:1.7;font-size:20px;overflow:auto;height:100%;}
-</style>
-</head>
-<body>
+  :root{ --bg:#0b0b0f; --fg:#f5f7fb; }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
+  #wrap{height:100%;padding:24px 26px;box-sizing:border-box}
+  #lyrics{white-space:pre-wrap;line-height:1.7;font-size:20px;height:100%;overflow:auto}
+</style></head><body>
 <div id="wrap"><div id="lyrics">불러오는 중…</div></div>
 <script>
   const API=${JSON.stringify(API)};
   async function fetchJson(url){
-    const res = await fetch(url,{cache:'no-store'});
-    const ct = res.headers.get('content-type')||'';
-    if (ct.includes('application/json')) return res.json();
-    const t = await res.text(); try{return JSON.parse(t);}catch{return {};}
+    const r=await fetch(url,{cache:'no-store'});const ct=r.headers.get('content-type')||'';
+    if(ct.includes('application/json'))return r.json();
+    const t=await r.text();try{return JSON.parse(t)}catch{return {}}
   }
   async function tick(){
     try{
-      const d = await fetchJson(API + '?nocache=' + Date.now());
-      const lyr = (d && d.lyrics) ? String(d.lyrics).trim() : '가사가 없습니다.';
-      document.getElementById('lyrics').textContent = lyr;
+      const d=await fetchJson(API+(API.includes('?')?'&':'?')+'nocache='+Date.now());
+      document.getElementById('lyrics').textContent = (d&&d.lyrics)?String(d.lyrics).trim():'가사가 없습니다.';
     }catch(_){}
   }
-  tick(); setInterval(tick, 2000);
-<\/script>
-</body></html>`;
+  tick(); setInterval(tick,2000);
+<\/script></body></html>`;
     w.document.open(); w.document.write(html); w.document.close();
   });
-
-  // 초기 적용
-  update();
 })();
 </script>
 </body>
