@@ -1,153 +1,174 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>지금 재생 · 오버레이</title>
+<title>Now Playing · Overlay</title>
 <style>
 :root{
-  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd;
-  --border:#243041; --panel:#0f1320; --control:#12172a;
-  --radius:16px; --pad:14px;
-  --card-w:640px;
-  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+  /* 팔레트(테마에 의해 바뀜) */
+  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd; --border:#243041;
 
-  --card-blur:8px;
+  /* 카드 박스 스타일(쿼리로 덮어씀) */
+  --radius:16px;
   --card-backdrop:rgba(16,19,27,0.55);
+  --card-blur:8px;
   --card-shadow:0 12px 30px rgba(0,0,0,.35);
+  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{background:transparent;color:var(--fg);font-family:var(--font)}
+body{
+  background:transparent;      /* 방송용: 투명 배경 */
+  color:var(--fg);
+  font-family:var(--font);
+}
 
-.stage{padding:18px;height:100%;display:grid;place-items:start}
+.wrap{
+  width:min(1080px, 96vw);
+  margin:18px auto;
+}
 
-/* 플레이어 카드 (고정 폭) */
 .card{
-  width: var(--card-w);
-  max-width: var(--card-w);
-  min-width: var(--card-w);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:var(--pad);
+  padding:16px;
   backdrop-filter: blur(var(--card-blur));
   -webkit-backdrop-filter: blur(var(--card-blur));
   background:var(--card-backdrop);
-  box-shadow:var(--card-shadow);
+  box-shadow: var(--card-shadow);
 }
+
 .np{
   display:grid;
   gap:16px;
   grid-template-columns: 180px 1fr;
   align-items:center;
 }
-.np-cover{
-  width:180px; aspect-ratio:1/1; border-radius:14px;
-  background:#1114; display:flex;align-items:center;justify-content:center;
-  overflow:hidden; border:1px solid var(--border);
+.cover{
+  width:180px; aspect-ratio:1/1; border-radius:14px; overflow:hidden;
+  border:1px solid var(--border); background:#1113;
+  display:flex;align-items:center;justify-content:center;
 }
-.np-cover img{width:100%;height:100%;object-fit:cover}
-.np-placeholder{
-  width:100%;height:100%;display:grid;place-items:center;color:#7c8597;
-  font-weight:700;font-size:14px;background:rgba(255,255,255,.03);
-}
-.np-title{
+.cover img{width:100%;height:100%;object-fit:cover}
+.title{
   font-weight:800; font-size:22px; letter-spacing:.2px; line-height:1.3;
   white-space: normal; word-break: keep-all; line-break: anywhere;
 }
-.np-artist{color:var(--fg);opacity:.85;font-size:14px;margin-top:2px}
-.np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
-.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--control);display:grid;place-items:center;cursor:pointer}
-.np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
-.np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
-.np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
-.np-barline.active{opacity:1}
+.sub{opacity:.85;font-size:14px;margin-top:4px}
+
+.ctrls{display:flex;align-items:center;gap:14px;margin-top:10px}
+.btn{width:36px;height:36px;border-radius:999px;border:1px solid var(--border);background:#0f1320;display:grid;place-items:center}
+.btn.primary{width:46px;height:46px;background:#fff;color:#111;border:none}
+
+.wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:12px}
+.bar{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .12s}
+.bar.active{opacity:1}
 </style>
 </head>
 <body>
-<main class="stage">
-  <div class="card" id="card">
-    <div class="np">
-      <div class="np-cover">
-        <!-- ✅ 고정 커버(저장소: /assets/haming.png) -->
-        <img id="cover" alt="Album cover" src="assets/haming.png"/>
-        <div class="np-placeholder" id="coverPh" style="display:none">COVER</div>
-      </div>
+  <div class="wrap">
+    <div class="card">
+      <div class="np">
+        <div class="cover"><img id="cover" alt="cover"></div>
 
-      <div class="np-main">
-        <div class="np-title" id="title">불러오는 중…</div>
-        <div class="np-artist" id="sub">가수 / SING🎤 임하밍</div>
+        <div class="main">
+          <div class="title" id="title">불러오는 중…</div>
+          <div class="sub" id="sub">SING 🎤 임하밍</div>
 
-        <div class="np-ctrls">
-          <button class="np-btn" title="이전">⏮</button>
-          <button class="np-btn primary" id="btnPlay" title="재생/일시정지">▶</button>
-          <button class="np-btn" title="다음">⏭</button>
+          <div class="ctrls">
+            <div class="btn">⏮</div>
+            <div class="btn primary">▶</div>
+            <div class="btn">⏭</div>
+          </div>
+
+          <div class="wave" id="wave"></div>
         </div>
-
-        <!-- 파형 -->
-        <div class="np-wave" id="wave"></div>
       </div>
     </div>
   </div>
-</main>
 
 <script>
 (function(){
-  /* ===== API 엔드포인트 추출 =====
-     - ?api=https://script.google.com/.../exec 로 넘기세요.  */
   const qs = new URLSearchParams(location.search);
-  function extractExecBase(){
-    const apiParam = qs.get('api');
-    if (apiParam){
-      try{
-        const u = new URL(apiParam, location.href);
-        return u.href.replace(/(\?|#).*$/,'');
-      }catch{
-        const s = String(apiParam);
-        return s.includes('/exec') ? s.split('/exec')[0] + '/exec' : s;
-      }
-    }
-    return ''; // 쿼리로 넘겨주세요
+
+  /* ========== 테마/모양/카드 스타일 파라미터 적용 ========== */
+  const THEMES = {
+    dark : {bg:'#0b0b0f', fg:'#f5f7fb', border:'#243041'},
+    light: {bg:'#f5f7fb', fg:'#0b0b0f', border:'#cfd6e3'},
+    darkA: {bg:'#090b13', fg:'#e9eef7', border:'#1f2a3b'},
+  };
+  const theme = qs.get('theme') || 'dark';
+  const t = THEMES[theme] || THEMES.dark;
+  const setVar = (k,v)=>document.documentElement.style.setProperty(k,v);
+  setVar('--bg', t.bg); setVar('--fg', t.fg); setVar('--border', t.border);
+
+  const shape = qs.get('shape'); // round | square | fill
+  if (shape){
+    const r = (shape==='round') ? 24 : 10;
+    setVar('--radius', r+'px');
   }
-  const API_BASE = extractExecBase();
+  const hexToRgb = (hex)=>{
+    const m=hex?.replace('#','')||'10131b';
+    const v=(m.length===3?m.split('').map(x=>x+x).join(''):m);
+    const n=parseInt(v,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+  };
+  const clamp100 = (v)=> Math.max(0,Math.min(100, Number(v)));
+  const cardHex = qs.get('card');
+  const cardA   = clamp100(qs.get('cardA') ?? 55);
+  const cardB   = Number(qs.get('cardB') ?? 8);
+  const cardS   = clamp100(qs.get('cardS') ?? 35);
+  const {r,g,b} = hexToRgb(cardHex || '#10131b');
+  setVar('--card-backdrop', `rgba(${r},${g},${b},${cardA/100})`);
+  setVar('--card-blur', cardB+'px');
+  setVar('--card-shadow', `0 ${6+cardS/4}px ${18+cardS/2}px rgba(0,0,0,${0.15+cardS/160})`);
 
-  const $ = id => document.getElementById(id);
-  const $title=$('title'), $sub=$('sub');
+  /* ========== 커버 이미지 (고정 or 파라미터) ========== */
+  const defaultCover = (qs.get('cover') || './assets/haming.png');
+  const $cover = document.getElementById('cover');
+  $cover.src = defaultCover;
 
-  /* 파형 애니메이션 */
-  const wave = document.getElementById('wave');
-  if (wave){
-    const bars=40;
-    const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
-    const els = heights.map(h=>{
-      const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d;
-    });
-    let idx=0;
-    setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
-  }
+  /* ========== API(앱스스크립트) ========== */
+  const API = qs.get('api'); // 반드시 control.html에서 붙여줌
+  const $title = document.getElementById('title');
+  const $sub   = document.getElementById('sub');
 
-  /* JSON 폴링 */
   async function fetchJson(url){
     const res = await fetch(url, {cache:'no-store'});
     const ct = res.headers.get('content-type')||'';
     if (ct.includes('application/json')) return res.json();
-    const t = await res.text(); try{return JSON.parse(t);}catch{throw new Error('Not JSON');}
+    const t = await res.text(); try{return JSON.parse(t);}catch{return {};}
   }
   async function tick(init){
-    if (!API_BASE){ if (init) { $title.textContent='API 미설정'; $sub.textContent=''; } return; }
+    if (!API){
+      if (init){ $title.textContent='API 미설정'; $sub.textContent='control.html에서 URL을 만들어 주세요'; }
+      return;
+    }
     try{
-      const data = await fetchJson(API_BASE + '?nocache=' + Date.now());
-      const singer = (data && data.singer) ? String(data.singer).trim() : '';
-      const title  = (data && data.title ) ? String(data.title ).trim()  : '';
-      if ($title) $title.textContent = title || singer || '체크된 곡이 없습니다';
-      if ($sub)   $sub.textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
-    }catch(e){
-      if (init){ $title && ($title.textContent='불러오기에 실패'); $sub && ($sub.textContent=''); }
-      console.error(e);
+      const d = await fetchJson(API + '?nocache=' + Date.now());
+      const singer = (d && d.singer) ? String(d.singer).trim() : '';
+      const title  = (d && d.title ) ? String(d.title ).trim()  : '';
+
+      $title.textContent = title || singer || '체크된 곡이 없습니다';
+      $sub.textContent   = singer ? `${singer} / SING 🎤 임하밍` : '';
+    }catch(_){
+      if (init){ $title.textContent='불러오기 실패'; $sub.textContent=''; }
     }
   }
-  tick(true); setInterval(tick, 2000);
+
+  /* ========== 파형 애니메이션 ========== */
+  const wave = document.getElementById('wave');
+  const bars=40;
+  const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
+  const els = heights.map(h=>{
+    const d=document.createElement('div'); d.className='bar'; d.style.height=h+'px'; wave.appendChild(d); return d;
+  });
+  let idx=0;
+  setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
+
+  tick(true);
+  setInterval(tick, 2000);
 })();
 </script>
 </body>
