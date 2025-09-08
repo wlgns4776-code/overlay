@@ -80,14 +80,14 @@ input[type="range"]{width:100%}
 <script>
 const STORAGE_KEY = 'np.overlay.style.v3';
 const qs = new URLSearchParams(location.search);
-const API = (()=>{
+const API = (()=> {
   const p = qs.get('api'); if (p) return p.replace(/(\?|#).*$/,'');
   const m = (document.referrer||'').match(/https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/);
   return m?m[0]:'';
 })();
 
-/* 링크 출력 */
-const base = location.origin + location.pathname.replace('control.html','overlay.html');
+/* ✅ 깃허브 overlay.html 기준으로 주소 생성 */
+const base = "https://wlgns4776-code.github.io/overlay/overlay.html";
 const overlayUrl = `${base}?overlay=1&api=${encodeURIComponent(API)}&v=3`;
 document.getElementById('ovUrl').value = overlayUrl;
 document.getElementById('copy').onclick = ()=>navigator.clipboard.writeText(overlayUrl);
@@ -150,7 +150,7 @@ function init(){
 ['hex','alpha','blur','shadow'].forEach(id=>el[id].addEventListener('input', syncFromInputs));
 init();
 
-/* 가사 팝업(간단 버전) */
+/* 가사 팝업 */
 document.getElementById('openLyrics').onclick = ()=>{
   if(!API) return alert('API 주소가 없어요');
   const w = window.open('', 'lyrics_popup', 'width=420,height=700,left=80,top=80,resizable=yes,scrollbars=yes');
