@@ -24,20 +24,25 @@
     }
     .wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
 
-    /* 카드 */
+    /* 카드 (기본: 반투명+블러) */
     .card{
       width:var(--card-w);
       border-radius:var(--radius);
       padding:var(--pad);
-      /* Fallback 단색 (구형 엔진 대비) */
-      background: rgba(123,66,246,0.9);
-      /* 최신 브라우저용 혼합 + 블러 */
       background: color-mix(in oklab, var(--bg) calc(var(--alpha)*100%), transparent);
       backdrop-filter: blur(var(--blur));
       -webkit-backdrop-filter: blur(var(--blur));
       box-shadow: var(--shadow);
       border:1px solid color-mix(in oklab, #fff 8%, #0000);
     }
+
+    /* ✅ solid 모드: 불투명, 블러 제거 */
+    .solid .card{
+      background: var(--bg) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
     .np{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:center}
 
     .cover{ width:180px; aspect-ratio:1/1; border-radius:14px; overflow:hidden; border:1px solid #00000022 }
@@ -83,10 +88,15 @@
   const apiUrl = (() => {
     const p = qs.get('api');
     if (p) return p.replace(/(\?|#).*$/,''); // 쿼리 제거
-    // (백업) 리퍼러에서 exec 추출
     const m = (document.referrer||'').match(/https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/);
     return m ? m[0] : '';
   })();
+
+  /* ✅ solid 모드 감지 */
+  if (qs.get('solid') === '1') {
+    document.documentElement.classList.add('solid');
+    document.documentElement.style.setProperty('--alpha', '1'); // 불투명 강제
+  }
 
   /* ========= 컨트롤(localStorage) 스타일 적용 ========= */
   function applyStyleFromLocal(){
@@ -103,7 +113,7 @@
   }
   applyStyleFromLocal();
 
-  /* ========= 커버 URL 정규화(깃허브/상대경로/루트경로/혼합콘텐츠) ========= */
+  /* ========= 커버 URL 정규화 ========= */
   function normalizeCover(url) {
     if (!url) return '';
     url = String(url).trim();
@@ -115,17 +125,17 @@
       return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${path}`;
     }
 
-    // 상대경로 → overlay 디렉터리 기준 절대경로
+    // 상대경로 → overlay 디렉터리 기준
     if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
-      return new URL(url, new URL('./', location.href)).href; // e.g. assets/haming.png
+      return new URL(url, new URL('./', location.href)).href;
     }
 
-    // 루트 절대경로('/assets/...') → /overlay/ 보정
+    // 루트(/assets/xxx.png) → /overlay/ 보정
     if (url.startsWith('/')) {
       return new URL('.' + url, 'https://wlgns4776-code.github.io/overlay/').href;
     }
 
-    // 혼합콘텐츠(http) → https 프록시
+    // http → https 프록시
     if (/^http:\/\//i.test(url)) {
       const withoutProto = url.replace(/^https?:\/\//, '');
       return `https://images.weserv.nl/?url=${encodeURIComponent(withoutProto)}`;
@@ -134,15 +144,13 @@
     return url;
   }
 
-  /* ========= 커버 적용(다단계 폴백 + 디버그 표시) ========= */
+  /* ========= 커버 적용 ========= */
   function setCover(src){
     const coverEl = document.getElementById('cover');
-    coverEl.dataset.cover = src; // 디버그: 실제 사용 URL
+    coverEl.dataset.cover = src; // 디버그용
     coverEl.onerror = () => {
-      // 1차 실패 → 깃허브 Pages에 있는 기본 자산
       const fallback1 = 'https://wlgns4776-code.github.io/overlay/assets/haming.png';
       if (coverEl.src !== fallback1) { coverEl.src = fallback1; return; }
-      // 2차 실패 → placeholder
       const fallback2 = 'https://via.placeholder.com/512?text=Cover';
       if (coverEl.src !== fallback2) { coverEl.src = fallback2; }
     };
@@ -169,19 +177,17 @@
 
   /* ========= 데이터 로드 ========= */
   async function fetchData(){
-    // 제목/메타 기본 폴백
     const titleEl = document.getElementById('title');
     const metaEl  = document.getElementById('meta');
 
     if(!apiUrl){
-      // api 없으면 param cover나 기본값 사용
       const first = normalizeCover(urlCoverParam) ||
                     'https://wlgns4776-code.github.io/overlay/assets/haming.png';
       setCover(first);
       return;
     }
     try{
-      const res = await fetch(apiUrl + '?_=' + Date.now()); // 캐시무효화
+      const res = await fetch(apiUrl + '?_=' + Date.now());
       const data = await res.json();
 
       titleEl.textContent = data.title || '제목 없음';
@@ -189,13 +195,11 @@
       const source = data.source || 'SING🎤';
       metaEl.textContent  = `${source}  ${singer}`.trim();
 
-      // 우선순위: URL 파라미터 cover > API coverUrl > 깃허브 자산
       const chosen = normalizeCover(urlCoverParam) ||
                      normalizeCover(data.coverUrl) ||
                      'https://wlgns4776-code.github.io/overlay/assets/haming.png';
       setCover(chosen);
 
-      // (선택) API가 cardColor를 내려주면 최우선 적용
       if (data.style && data.style.cardColor){
         document.documentElement.style.setProperty('--bg', data.style.cardColor);
       }
