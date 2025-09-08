@@ -1,109 +1,174 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Overlay · Card Only</title>
+<title>Overlay (Card only)</title>
 <style>
 :root{
-  --bg:#0b0b0f; --fg:#f5f7fb; --border:#243041;
-  --radius:16px; --pad:14px; --card-w:640px;
-  --card-backdrop:rgba(16,19,27,.55); --card-blur:8px;
+  --bg:#0b0b0f; --fg:#f5f7fb;
+  --border:#243041; --control:#12172a;
+  --radius:16px; --pad:14px;
+  --card-w:640px;
+
+  --card-blur:8px;
+  --card-backdrop:rgba(16,19,27,0.55);
   --card-shadow:0 12px 30px rgba(0,0,0,.35);
-  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
 }
-*{box-sizing:border-box} html,body{height:100%;margin:0}
-body{background:transparent;color:var(--fg);font-family:var(--font)}
-.stage{padding:18px}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:transparent;color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
+
+.stage{padding:0;height:100%;display:grid;place-items:center}
 .card{
-  width:var(--card-w); border:1px solid var(--border);
-  border-radius:var(--radius); padding:var(--pad);
-  backdrop-filter:blur(var(--card-blur));
-  -webkit-backdrop-filter:blur(var(--card-blur));
-  background:var(--card-backdrop); box-shadow:var(--card-shadow);
+  width:var(--card-w); max-width:95vw;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:var(--pad);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  background:var(--card-backdrop);
+  box-shadow:var(--card-shadow);
 }
-.np{display:grid;gap:16px;grid-template-columns:180px 1fr;align-items:center}
-.np-cover{width:180px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.np{display:grid;gap:16px;grid-template-columns: 180px 1fr;align-items:center}
+.np-cover{
+  width:180px; aspect-ratio:1/1; border-radius:14px;
+  background:#1114; display:flex;align-items:center;justify-content:center;
+  overflow:hidden; border:1px solid var(--border);
+}
 .np-cover img{width:100%;height:100%;object-fit:cover}
 .np-title{font-weight:800;font-size:22px;line-height:1.3}
 .np-artist{opacity:.85;font-size:14px;margin-top:2px}
 .np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
-.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:#12172a;display:grid;place-items:center}
+.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--control);display:grid;place-items:center}
 .np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
 .np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
 .np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
 .np-barline.active{opacity:1}
+
+/* === 가사 팝업 전용 레이아웃 === */
+.only-lyrics body{background:#0b0b0f}
+.only-lyrics .stage{display:block}
+.only-lyrics .card{display:none}
+.only-lyrics .lyrics{
+  margin:0; padding:24px 26px; height:100vh; overflow:auto;
+  color:#f5f7fb; line-height:1.7; white-space:pre-wrap;
+}
 </style>
 </head>
 <body>
-<main class="stage">
-  <div class="card">
+<div class="stage">
+  <div class="card" id="card">
     <div class="np">
       <div class="np-cover">
-        <!-- ✅ 고정 커버 -->
-        <img id="cover" alt="Album cover" src="./haming.png"/>
+        <!-- 고정 커버 -->
+        <img id="cover" alt="Album cover" src="./assets/haming.png"/>
       </div>
       <div class="np-main">
-        <div class="np-title"  id="title">불러오는 중…</div>
+        <div class="np-title" id="title">불러오는 중…</div>
         <div class="np-artist" id="sub"></div>
+
         <div class="np-ctrls">
           <div class="np-btn">⏮</div>
           <div class="np-btn primary">▶</div>
           <div class="np-btn">⏭</div>
         </div>
+
         <div class="np-wave" id="wave"></div>
       </div>
     </div>
   </div>
-</main>
+
+  <!-- 가사 팝업 전용 -->
+  <div class="lyrics" id="lyricsBox" style="display:none">가사가 여기에 표시됩니다.</div>
+</div>
 
 <script>
 (function(){
-  /* --------- 설정 읽기 --------- */
   const qs = new URLSearchParams(location.search);
-  const API = qs.get('api') || '';            // Apps Script /exec
-  const theme = (qs.get('theme')||'dark');    // 옵션: dark/light
-  // (원하면 각종 스타일 파라미터를 더 읽어 적용 가능)
 
-  if (theme === 'light'){
-    document.documentElement.style.setProperty('--bg','#f5f7fb');
-    document.documentElement.style.setProperty('--fg','#0b0b0f');
-    document.documentElement.style.setProperty('--border','#cfd6e3');
-    document.documentElement.style.setProperty('--card-backdrop','rgba(255,255,255,.75)');
+  // === 모드: 가사 팝업 ===
+  const isLyricsOnly = (qs.get('popup') === 'lyrics');
+  if (isLyricsOnly) {
+    document.documentElement.classList.add('only-lyrics');
+    document.getElementById('lyricsBox').style.display='block';
   }
 
-  const $ = id => document.getElementById(id);
-  const $title=$('title'), $sub=$('sub');
+  // === 스타일: URL 파라미터 -> CSS 변수 적용
+  function setVar(name, val){ if (val!=null && val!=='') document.documentElement.style.setProperty(name, val); }
+  setVar('--card-blur',     (qs.get('cardBlur')||'8')+'px');
+  setVar('--card-shadow',   `0 ${6+(+qs.get('cardShadow')||35)/4}px ${18+(+qs.get('cardShadow')||35)/2}px rgba(0,0,0,${0.15+(+qs.get('cardShadow')||35)/160})`);
+  setVar('--radius',        (qs.get('radius')||'16')+'px');
 
-  /* --------- 파형 --------- */
+  // 카드 배경색상(hex) + alpha(%)
+  function hexToRgb(hex){ const m=hex?.replace('#',''); if(!m) return null; const v=(m.length===3?m.split('').map(x=>x+x).join(''):m); const n=parseInt(v,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  const cardHex = qs.get('cardHex') || '#10131b';
+  const cardAlpha = Math.max(0,Math.min(100,Number(qs.get('cardAlpha')||55)))/100;
+  const rgb = hexToRgb(cardHex); if (rgb) setVar('--card-backdrop',`rgba(${rgb.r},${rgb.g},${rgb.b},${cardAlpha})`);
+
+  // === API 엔드포인트(필수: ?api=.../exec)
+  const API_BASE = (()=> {
+    const api = qs.get('api');
+    try{ if (api) return new URL(api, location.href).href.replace(/(\?|#).*$/,''); }catch(_){}
+    return ''; // 없으면 상태만 보여줌
+  })();
+
+  const $ = id => document.getElementById(id);
+  const $title=$('title'), $sub=$('sub'), $lyrics=$('lyricsBox');
+
+  // 파형 애니메이션
   const wave = document.getElementById('wave');
   if (wave){
     const bars=40;
     const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
-    const els = heights.map(h=>{
-      const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d;
-    });
+    const els = heights.map(h=>{ const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d; });
     let idx=0; setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
   }
 
-  /* --------- 데이터 폴링 --------- */
+  // 데이터 폴링
   async function fetchJson(url){
     const res = await fetch(url, {cache:'no-store'});
     const ct = res.headers.get('content-type')||'';
     if (ct.includes('application/json')) return res.json();
-    return JSON.parse(await res.text());
+    const t = await res.text(); try{return JSON.parse(t);}catch{return {};}
   }
   async function tick(init){
-    if (!API) return;
+    if (!API_BASE){ 
+      if (isLyricsOnly && $lyrics) $lyrics.textContent='API 파라미터(api=.../exec)가 필요합니다.';
+      if (!isLyricsOnly) { $('title').textContent='API 미설정'; $('sub').textContent=''; }
+      return;
+    }
     try{
-      const d = await fetchJson(API + '?nocache=' + Date.now());
-      const singer = (d && d.singer) ? String(d.singer).trim() : '';
-      const title  = (d && d.title ) ? String(d.title ).trim()  : '';
-      $title.textContent = title || singer || '체크된 곡이 없습니다';
-      $sub.textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
-    }catch(e){ if(init){ $title.textContent='불러오기에 실패했어요'; $sub.textContent=''; } }
+      const data = await fetchJson(API_BASE + '?nocache=' + Date.now());
+      const singer = (data && data.singer) ? String(data.singer).trim() : '';
+      const title  = (data && data.title ) ? String(data.title ).trim()  : '';
+      const lyrics = (data && data.lyrics) ? String(data.lyrics).trim() : '';
+
+      if (!isLyricsOnly){
+        $('title').textContent = title || singer || '체크된 곡이 없습니다';
+        $('sub').textContent   = singer ? `${singer} / SING🎤` : '';
+      } else {
+        $lyrics.textContent = lyrics || '가사가 없습니다.';
+      }
+    }catch(e){
+      if (init && isLyricsOnly) $lyrics.textContent='불러오기에 실패했어요';
+      if (init && !isLyricsOnly){ $('title').textContent='불러오기에 실패했어요'; $('sub').textContent=''; }
+      console.error(e);
+    }
   }
   tick(true); setInterval(tick, 2000);
+
+  // === 같은 PC에서 컨트롤 페이지가 보내는 실시간 스타일 반영 (선택적)
+  try{
+    const bc = new BroadcastChannel('overlay-style');
+    bc.onmessage = (ev)=>{
+      const {type, payload} = ev.data||{};
+      if (type==='style-vars'){
+        Object.entries(payload||{}).forEach(([k,v])=> document.documentElement.style.setProperty(k, v));
+      }
+    };
+  }catch(_){}
 })();
 </script>
 </body>
