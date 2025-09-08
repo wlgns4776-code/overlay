@@ -1,195 +1,352 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Overlay Control</title>
+<title>오버레이 컨트롤</title>
 <style>
-  :root{ --bg:#0f1320; --fg:#f5f7fb; --muted:#a6afbd; --panel:#12172a; --border:#243041; }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
-  body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
-  .wrap{max-width:880px;margin:0 auto;padding:20px;display:grid;gap:16px}
-  .box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
-  h1{font-size:20px;margin:0 0 10px}
-  h2{font-size:16px;margin:0 0 10px;color:var(--muted)}
-  label{display:block;margin:10px 0 6px}
-  input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#1a2440;color:#fff}
-  .row{display:flex;gap:10px;align-items:center;margin:8px 0}
-  input[type="color"]{width:56px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent}
-  input[type="range"]{flex:1}
-  .btn{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#2d3b52;color:#fff;cursor:pointer}
-  .btn:hover{background:#3b4c6b}
-  .muted{color:var(--muted);font-size:13px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media (max-width:760px){.grid{grid-template-columns:1fr}}
+:root{
+  --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd;
+  --border:#243041; --panel:#0f1320; --control:#12172a;
+  --radius:16px; --pad:14px; --gap:70px;
+  --card-w:640px;
+  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+
+  --card-blur:8px;
+  --card-backdrop:rgba(16,19,27,0.55);
+  --card-shadow:0 12px 30px rgba(0,0,0,.35);
+
+  --lyr-blur:8px;
+  --lyr-backdrop:rgba(16,19,27,0.30);
+  --lyr-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font)}
+.app{display:grid;grid-template-columns:320px 1fr;height:100%}
+
+/* 왼쪽 컨트롤 패널 */
+.panel{padding:16px;border-right:1px solid var(--border);background:var(--panel);overflow:auto}
+.panel h2{font-size:16px;margin:8px 0 12px}
+.row{display:flex;align-items:center;gap:8px;margin:10px 0}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:8px 10px;border:1px solid var(--border);background:var(--control);color:var(--fg);
+  border-radius:10px;cursor:pointer;font-size:13px;white-space:nowrap}
+.seg button.active{outline:2px solid var(--fg)}
+input[type="range"]{width:100%}
+input[type="color"]{width:56px;height:32px;border:1px solid var(--border);border-radius:8px;padding:0;background:transparent}
+.btn{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--control);color:var(--fg);cursor:pointer}
+.muted{color:var(--muted)} .small{font-size:12px}
+input[type="text"]{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0b0f18;color:var(--fg)}
+
+/* 오른쪽 샘플 카드 + 가사 미리보기 */
+.stage{padding:18px;height:100%;overflow:auto}
+.now-wrap{ display:grid; grid-template-columns: var(--card-w) minmax(28ch, 42ch); gap: var(--gap); align-items: center; }
+@media (max-width: 1100px){ .now-wrap{ grid-template-columns: 1fr; align-items:start; }}
+
+/* 카드 */
+.card{
+  width: var(--card-w); max-width: var(--card-w); min-width: var(--card-w);
+  border:1px solid var(--border); border-radius:var(--radius); padding:var(--pad);
+  backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur));
+  background:var(--card-backdrop); box-shadow:var(--card-shadow);
+}
+.np{ display:grid; gap:16px; grid-template-columns: 180px 1fr; align-items:center; }
+.np-cover{ width:180px; aspect-ratio:1/1; border-radius:14px; background:#1114; display:flex;align-items:center;justify-content:center; overflow:hidden; border:1px solid var(--border); }
+.np-cover img{width:100%;height:100%;object-fit:cover}
+.np-placeholder{ width:100%;height:100%;display:grid;place-items:center;color:#7c8597;font-weight:700;font-size:14px;background:rgba(255,255,255,.03); }
+.np-title{ font-weight:800; font-size:22px; letter-spacing:.2px; line-height:1.3; white-space: normal; word-break: keep-all; }
+.np-artist{color:var(--fg);opacity:.85;font-size:14px;margin-top:2px}
+.np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
+.np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--control);display:grid;place-items:center;cursor:pointer}
+.np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
+.np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
+.np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
+.np-barline.active{opacity:1}
+
+/* 가사 박스 */
+.lyrics{
+  border:1px solid var(--border); border-radius:var(--radius); padding:16px;
+  background:var(--lyr-backdrop); backdrop-filter: blur(var(--lyr-blur)); -webkit-backdrop-filter: blur(var(--lyr-blur));
+  box-shadow: var(--lyr-shadow); width:max-content; min-width:28ch; max-width:min(70ch,96vw);
+  max-height:calc(100vh - 80px); overflow:auto; white-space:pre-wrap; line-height:1.55;
+}
+.lyrics h3{margin:0 0 8px 0; font-size:16px; color:var(--muted); font-weight:600}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🎛 Overlay Control</h1>
+<div class="app">
+  <!-- 왼쪽: 컨트롤 -->
+  <aside class="panel">
+    <h2>오버레이 기본 주소</h2>
+    <input id="overlayUrl" type="text" readonly />
+    <div class="row"><button class="btn" id="copyOverlay">주소 복사</button></div>
 
-  <div class="box">
-    <h2>1) Apps Script JSON API</h2>
-    <label>실행 URL( /exec )</label>
-    <input id="api" type="text" placeholder="예: https://script.google.com/macros/s/XXXXXXXX/exec" />
+    <h2>프리셋</h2>
+    <div class="seg" id="presets">
+      <button data-preset="dark"  class="active">다크</button>
+      <button data-preset="light">라이트</button>
+      <button data-preset="darkA">다크A</button>
+      <button data-preset="lightA">라이트A</button>
+    </div>
+
+    <h2>표시 카드 스타일</h2>
+    <div class="seg" id="styleSeg">
+      <button data-style="round" class="active">원형</button>
+      <button data-style="square">사각형</button>
+    </div>
+
+    <!-- 카드 배경 컨트롤 -->
+    <h2>카드 배경</h2>
     <div class="row">
-      <button class="btn" id="saveApi">저장</button>
-      <span class="muted">저장하면 아래 주소에 자동 반영돼요.</span>
+      <label style="width:90px">색상</label>
+      <input id="cardColor" type="color" value="#10131b">
+      <span id="cardColorHex" class="muted" style="margin-left:8px">#10131B</span>
     </div>
-  </div>
+    <div class="row"><label style="width:90px">투명도</label><input id="cardAlpha" type="range" min="0" max="100" value="55"><span class="muted" id="cardAlphaOut">55%</span></div>
+    <div class="row"><label style="width:90px">블러</label><input id="cardBlur" type="range" min="0" max="30" value="8"><span class="muted" id="cardBlurOut">8px</span></div>
+    <div class="row"><label style="width:90px">그림자</label><input id="cardShadow" type="range" min="0" max="100" value="35"><span class="muted" id="cardShadowOut">35</span></div>
 
-  <div class="box grid">
-    <div>
-      <h2>2) 카드 스타일</h2>
-      <div class="row"><label>배경색</label><input type="color" id="cardHex" value="#10131b"></div>
-      <div class="row"><label>투명도</label><input type="range" id="cardAlpha" min="0" max="100" value="55"><span id="cardAlphaOut" class="muted">55%</span></div>
-      <div class="row"><label>블러</label><input type="range" id="cardBlur" min="0" max="30" value="8"><span id="cardBlurOut" class="muted">8px</span></div>
-      <div class="row"><label>그림자</label><input type="range" id="cardShadow" min="0" max="100" value="35"><span id="cardShadowOut" class="muted">35</span></div>
-      <div class="row"><label>모서리 반경</label><input type="range" id="radius" min="0" max="40" value="16"><span id="radiusOut" class="muted">16px</span></div>
+    <!-- 가사 배경 컨트롤 -->
+    <h2>가사 배경</h2>
+    <div class="row">
+      <label style="width:90px">색상</label>
+      <input id="lyrColor" type="color" value="#10131b">
+      <span id="lyrColorHex" class="muted" style="margin-left:8px">#10131B</span>
+    </div>
+    <div class="row"><label style="width:90px">투명도</label><input id="lyrAlpha" type="range" min="0" max="100" value="30"><span class="muted" id="lyrAlphaOut">30%</span></div>
+    <div class="row"><label style="width:90px">블러</label><input id="lyrBlur" type="range" min="0" max="30" value="8"><span class="muted" id="lyrBlurOut">8px</span></div>
+    <div class="row"><label style="width:90px">그림자</label><input id="lyrShadow" type="range" min="0" max="100" value="25"><span class="muted" id="lyrShadowOut">25</span></div>
 
-      <div class="row" style="margin-top:12px;gap:8px">
-        <button class="btn" id="sendRealtime">같은 PC 오버레이에 실시간 적용</button>
-        <span class="muted">OBS/프릭샷 브라우저 소스가 같은 PC에서 <code>overlay.html</code>을 열고 있으면 즉시 반영</span>
+    <h2>동작</h2>
+    <div class="seg">
+      <button class="btn" id="openLyricsPopup">가사 팝업 열기</button>
+    </div>
+    <div class="small muted" id="status"></div>
+  </aside>
+
+  <!-- 오른쪽: 샘플 카드 + 가사 미리보기 -->
+  <main class="stage">
+    <div class="now-wrap">
+      <div class="card" id="card">
+        <div class="np">
+          <div class="np-cover">
+            <img id="cover" alt="Album cover" src="assets/haming.png"/>
+            <div class="np-placeholder" id="coverPh" style="display:none">COVER</div>
+          </div>
+
+          <div class="np-main">
+            <div class="np-title" id="title">불러오는 중…</div>
+            <div class="np-artist" id="sub">가수 / SING🎤 임하밍</div>
+
+            <div class="np-ctrls">
+              <button class="np-btn" title="이전">⏮</button>
+              <button class="np-btn primary" id="btnPlay" title="재생/일시정지">▶</button>
+              <button class="np-btn" title="다음">⏭</button>
+            </div>
+
+            <div class="np-wave" id="wave"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lyrics" id="lyricsBox">
+        <h3>가사</h3>
+        <div id="lyrics">가사가 여기에 표시됩니다.</div>
       </div>
     </div>
-
-    <div>
-      <h2>3) 방송/팝업 주소</h2>
-      <label>방송용(카드만) 주소</label>
-      <input id="overlayUrl" type="text" readonly />
-      <div class="row">
-        <button class="btn" id="copyOverlay">복사</button>
-        <button class="btn" id="openOverlay">미리보기</button>
-      </div>
-
-      <label style="margin-top:12px">가사 팝업 주소</label>
-      <input id="lyricsUrl" type="text" readonly />
-      <div class="row">
-        <button class="btn" id="copyLyrics">복사</button>
-        <button class="btn" id="openLyrics">팝업 열기</button>
-      </div>
-
-      <div class="muted" style="margin-top:8px">
-        • 방송 프로그램에는 <strong>방송용(카드만) 주소</strong>를 브라우저 소스로 등록하세요.<br>
-        • 가사는 필요할 때만 팝업 버튼으로 별도 창에서 봅니다.
-      </div>
-    </div>
-  </div>
+  </main>
 </div>
 
 <script>
 (function(){
-  const GH_BASE = location.origin + location.pathname.replace(/\/control\.html.*$/,'/') + 'overlay.html';
-
-  // === 엘리먼트
-  const $ = (id)=>document.getElementById(id);
-  const $api = $('api');
-
-  const inputs = {
-    cardHex: $('cardHex'),
-    cardAlpha: $('cardAlpha'),
-    cardBlur: $('cardBlur'),
-    cardShadow: $('cardShadow'),
-    radius: $('radius'),
-  };
-  const outs = {
-    cardAlphaOut: $('cardAlphaOut'),
-    cardBlurOut: $('cardBlurOut'),
-    cardShadowOut: $('cardShadowOut'),
-    radiusOut: $('radiusOut'),
-  };
-
-  // 저장/로드
-  const store = {
-    load(){
-      $api.value = localStorage.getItem('overlay_api') || '';
-      inputs.cardHex.value = localStorage.getItem('cardHex') || '#10131b';
-      inputs.cardAlpha.value = localStorage.getItem('cardAlpha') || '55';
-      inputs.cardBlur.value = localStorage.getItem('cardBlur') || '8';
-      inputs.cardShadow.value = localStorage.getItem('cardShadow') || '35';
-      inputs.radius.value = localStorage.getItem('radius') || '16';
-      reflectOutputs();
-      buildUrls();
-    },
-    save(){
-      localStorage.setItem('overlay_api', $api.value.trim());
-      localStorage.setItem('cardHex', inputs.cardHex.value);
-      localStorage.setItem('cardAlpha', inputs.cardAlpha.value);
-      localStorage.setItem('cardBlur', inputs.cardBlur.value);
-      localStorage.setItem('cardShadow', inputs.cardShadow.value);
-      localStorage.setItem('radius', inputs.radius.value);
-      buildUrls();
+  /* ===== API 엔드포인트 감지 (쿼리의 api= 우선) ===== */
+  const qs = new URLSearchParams(location.search);
+  function extractExecBase(){
+    const apiParam = qs.get('api');
+    if (apiParam){
+      try{
+        const u = new URL(apiParam, location.href);
+        return u.href.replace(/(\?|#).*$/,'');
+      }catch{
+        const s = String(apiParam);
+        return s.includes('/exec') ? s.split('/exec')[0] + '/exec' : s;
+      }
     }
-  };
-
-  function reflectOutputs(){
-    outs.cardAlphaOut.textContent = inputs.cardAlpha.value+'%';
-    outs.cardBlurOut.textContent  = inputs.cardBlur.value+'px';
-    outs.cardShadowOut.textContent= inputs.cardShadow.value;
-    outs.radiusOut.textContent    = inputs.radius.value+'px';
+    return '';
   }
+  const API_BASE = extractExecBase();
 
-  // URL 생성
-  function buildQuery(){
-    const p = new URLSearchParams();
-    if ($api.value.trim()) p.set('api', $api.value.trim());
-    p.set('cardHex', inputs.cardHex.value);
-    p.set('cardAlpha', inputs.cardAlpha.value);
-    p.set('cardBlur', inputs.cardBlur.value);
-    p.set('cardShadow', inputs.cardShadow.value);
-    p.set('radius', inputs.radius.value);
-    return p.toString();
+  /* 오버레이 주소 만들기(현재 control.html 기준) */
+  const overlayUrl = document.getElementById('overlayUrl');
+  const overlayHref = new URL(location.href);
+  overlayHref.pathname = overlayHref.pathname.replace(/control\.html$/,'overlay.html');
+  if (API_BASE) {
+    overlayHref.search = '?api=' + encodeURIComponent(API_BASE);
+  } else {
+    overlayHref.search = '';
   }
-  function buildUrls(){
-    const q = buildQuery();
-    $('overlayUrl').value = GH_BASE + (q ? ('?' + q) : '');
-    $('lyricsUrl').value  = GH_BASE + '?popup=lyrics' + (q ? ('&' + q) : '');
-  }
+  overlayUrl.value = overlayHref.href;
 
-  // 이벤트 바인딩
-  $('saveApi').addEventListener('click', ()=>{ store.save(); alert('저장 완료'); });
-
-  Object.values(inputs).forEach(el=>{
-    el.addEventListener('input', ()=>{ reflectOutputs(); store.save(); });
+  document.getElementById('copyOverlay').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(overlayUrl.value);
   });
 
-  function copy(id){ navigator.clipboard.writeText($(id).value).then(()=>alert('복사되었습니다.\n' + $(id).value)); }
-  $('copyOverlay').addEventListener('click', ()=>copy('overlayUrl'));
-  $('copyLyrics').addEventListener('click', ()=>copy('lyricsUrl'));
-  $('openOverlay').addEventListener('click', ()=>window.open($('overlayUrl').value,'_blank'));
-  $('openLyrics').addEventListener('click', ()=>window.open($('lyricsUrl').value,'lyrics_popup','width=420,height=700,resizable=yes,scrollbars=yes'));
+  const $ = id => document.getElementById(id);
+  const $title=$('title'), $sub=$('sub'), $lyrics=$('lyrics'), $status=$('status');
 
-  // 같은 PC 실시간 적용 (BroadcastChannel)
-  $('sendRealtime').addEventListener('click', ()=>{
+  /* 파형 */
+  const wave = document.getElementById('wave');
+  if (wave){
+    const bars=40;
+    const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
+    const els = heights.map(h=>{
+      const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d;
+    });
+    let idx=0;
+    setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
+  }
+
+  /* 스타일 컨트롤 */
+  function hexToRgb(hex){ const m=hex.replace('#',''); const v=(m.length===3?m.split('').map(x=>x+x).join(''):m); const n=parseInt(v,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function shadowVal(v){ v=Math.max(0,Math.min(100,Number(v))); return `0 ${6+v/4}px ${18+v/2}px rgba(0,0,0,${0.15+v/160})`; }
+
+  const $cardColor=$('cardColor'), $cardColorHex=$('cardColorHex');
+  const $cardAlpha=$('cardAlpha'), $cardAlphaOut=$('cardAlphaOut');
+  const $cardBlur=$('cardBlur'), $cardBlurOut=$('cardBlurOut');
+  const $cardShadow=$('cardShadow'), $cardShadowOut=$('cardShadowOut');
+
+  const $lyrColor=$('lyrColor'), $lyrColorHex=$('lyrColorHex');
+  const $lyrAlpha=$('lyrAlpha'), $lyrAlphaOut=$('lyrAlphaOut');
+  const $lyrBlur=$('lyrBlur'), $lyrBlurOut=$('lyrBlurOut');
+  const $lyrShadow=$('lyrShadow'), $lyrShadowOut=$('lyrShadowOut');
+
+  function applyCardStyle(){
+    const {r,g,b}=hexToRgb($cardColor.value||'#10131b');
+    const a=Math.max(0,Math.min(100,Number($cardAlpha.value)))/100;
+    document.documentElement.style.setProperty('--card-backdrop',`rgba(${r},${g},${b},${a})`);
+    document.documentElement.style.setProperty('--card-blur',($cardBlur.value||8)+'px');
+    document.documentElement.style.setProperty('--card-shadow',shadowVal($cardShadow.value||35));
+    $cardColorHex.textContent = ($cardColor.value||'#10131b').toUpperCase();
+    $cardAlphaOut.textContent = ($cardAlpha.value||0)+'%';
+    $cardBlurOut.textContent  = ($cardBlur.value||0)+'px';
+    $cardShadowOut.textContent= ($cardShadow.value||0);
+  }
+  function applyLyricStyle(){
+    const {r,g,b}=hexToRgb($lyrColor.value||'#10131b');
+    const a=Math.max(0,Math.min(100,Number($lyrAlpha.value)))/100;
+    document.documentElement.style.setProperty('--lyr-backdrop',`rgba(${r},${g},${b},${a})`);
+    document.documentElement.style.setProperty('--lyr-blur',($lyrBlur.value||8)+'px');
+    document.documentElement.style.setProperty('--lyr-shadow',shadowVal($lyrShadow.value||25));
+    $lyrColorHex.textContent = ($lyrColor.value||'#10131b').toUpperCase();
+    $lyrAlphaOut.textContent = ($lyrAlpha.value||0)+'%';
+    $lyrBlurOut.textContent  = ($lyrBlur.value||0)+'px';
+    $lyrShadowOut.textContent= ($lyrShadow.value||0);
+  }
+  [$cardColor,$cardAlpha,$cardBlur,$cardShadow].forEach(el=>el.addEventListener('input', applyCardStyle));
+  [$lyrColor,$lyrAlpha,$lyrBlur,$lyrShadow].forEach(el=>el.addEventListener('input', applyLyricStyle));
+  applyCardStyle(); applyLyricStyle();
+
+  /* 프리셋 + 모서리 */
+  const PRESETS={
+    dark:{bg:'#0b0b0f',fg:'#f5f7fb',border:'#243041',panel:'#0f1320',control:'#12172a'},
+    light:{bg:'#f5f7fb',fg:'#0b0b0f',border:'#cfd6e3',panel:'#f0f3fb',control:'#ffffff'},
+    darkA:{bg:'#090b13',fg:'#e9eef7',border:'#1f2a3b',panel:'#0d1222',control:'#12172a'},
+    lightA:{bg:'#eef3ff',fg:'#11131a',border:'#bfd0ee',panel:'#f7faff',control:'#ffffff'}
+  };
+  const $presets=$('presets'), $styleSeg=$('styleSeg');
+  $presets.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...$presets.children].forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    const p=PRESETS[b.dataset.preset]||PRESETS.dark;
+    document.documentElement.style.setProperty('--bg',p.bg);
+    document.documentElement.style.setProperty('--fg',p.fg);
+    document.documentElement.style.setProperty('--border',p.border);
+    document.documentElement.style.setProperty('--panel',p.panel);
+    document.documentElement.style.setProperty('--control',p.control);
+  });
+  $styleSeg.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...$styleSeg.children].forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    const r = (b.dataset.style==='round')?24:10;
+    document.documentElement.style.setProperty('--radius', r+'px');
+  });
+
+  /* 가사 팝업(가사만) */
+  document.getElementById('openLyricsPopup').addEventListener('click', ()=>{
+    const w = window.open('', 'lyrics_popup',
+      `width=${Number(localStorage.getItem('lyr_w')||420)},height=${Number(localStorage.getItem('lyr_h')||700)},left=${Number(localStorage.getItem('lyr_l')||50)},top=${Number(localStorage.getItem('lyr_t')||50)},resizable=yes,scrollbars=yes`);
+    if (!w){ alert('팝업 차단을 해제해 주세요.'); return; }
+    const popupHTML = `
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가사</title>
+<style>
+  :root{ --bg:#0b0b0f; --fg:#f5f7fb; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; }
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font)}
+  #wrap{height:100%;box-sizing:border-box;padding:24px 26px;}
+  #lyrics{white-space:pre-wrap;line-height:1.7;font-size:20px;overflow:auto;height:100%;}
+</style>
+</head><body>
+  <div id="wrap"><div id="lyrics">불러오는 중…</div></div>
+<script>
+  const API_BASE = ${JSON.stringify(API_BASE||'')};
+  async function fetchJson(url){
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    const t = await res.text(); try{return JSON.parse(t);}catch{return {};}
+  }
+  async function tick(){
+    if(!API_BASE) return;
     try{
-      const bc = new BroadcastChannel('overlay-style');
-      // CSS 변수 값 계산 (오버레이 쪽 계산식과 동일하게 만들어 전송)
-      const a = Math.max(0,Math.min(100,Number(inputs.cardAlpha.value)))/100;
-      const hex = inputs.cardHex.value.replace('#','');
-      const val = (hex.length===3?hex.split('').map(x=>x+x).join(''):hex);
-      const n = parseInt(val,16);
-      const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
-      const backdrop = `rgba(${r},${g},${b},${a})`;
-      const shadow = `0 ${6+inputs.cardShadow.value/4}px ${18+inputs.cardShadow.value/2}px rgba(0,0,0,${0.15+inputs.cardShadow.value/160})`;
-
-      bc.postMessage({
-        type:'style-vars',
-        payload:{
-          '--card-backdrop': backdrop,
-          '--card-blur': inputs.cardBlur.value+'px',
-          '--card-shadow': shadow,
-          '--radius': inputs.radius.value+'px'
-        }
-      });
-      alert('보냈습니다! (같은 PC에서 overlay.html을 열고 있어야 적용돼요)');
-    }catch(e){
-      alert('브라우저가 실시간 전송을 지원하지 않아요.');
-    }
+      const d = await fetchJson(API_BASE + '?nocache=' + Date.now());
+      const lyr = (d && d.lyrics) ? String(d.lyrics).trim() : '가사가 없습니다.';
+      document.getElementById('lyrics').textContent = lyr;
+    }catch(_){}
+  }
+  tick(); setInterval(tick, 2000);
+<\/script>
+</body></html>`;
+    w.document.open(); w.document.write(popupHTML); w.document.close();
+    const savePos = () => {
+      try{
+        localStorage.setItem('lyr_w', w.outerWidth);
+        localStorage.setItem('lyr_h', w.outerHeight);
+        localStorage.setItem('lyr_l', w.screenX);
+        localStorage.setItem('lyr_t', w.screenY);
+      }catch(_){}
+    };
+    const timer = setInterval(()=>{ if (w && !w.closed) savePos(); else clearInterval(timer); }, 1200);
   });
 
-  // 초기 로드
-  store.load();
+  /* 데이터 폴링 */
+  async function fetchJson(url){
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    const t = await res.text(); try{return JSON.parse(t);}catch{throw new Error('Not JSON');}
+  }
+  async function tick(init){
+    if (!API_BASE){ if (init){ $('title').textContent='API 미설정'; $('sub').textContent=''; $('lyrics').textContent=''; } return; }
+    try{
+      const data = await fetchJson(API_BASE + '?nocache=' + Date.now());
+      const singer = (data && data.singer) ? String(data.singer).trim() : '';
+      const title  = (data && data.title ) ? String(data.title ).trim()  : '';
+      const lyrics = (data && data.lyrics) ? String(data.lyrics).trim() : '';
+      $('title').textContent = title || singer || '체크된 곡이 없습니다';
+      $('sub').textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
+      $('lyrics').textContent = lyrics || '가사가 없습니다.';
+      $status.textContent='연결 OK';
+    }catch(e){
+      if (init){ $('title').textContent='불러오기 실패'; $('sub').textContent=''; $('lyrics').textContent=''; }
+      $status.textContent='연결 실패';
+      console.error(e);
+    }
+  }
+  tick(true); setInterval(tick, 2000);
 })();
 </script>
 </body>
