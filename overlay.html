@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>방송용 오버레이</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>방송용 오버레이</title>
   <style>
     :root{
-      /* 컨트롤과 동일 변수 (기본값: 보라 카드 느낌) */
+      /* 컨트롤(control.html)과 공유되는 변수 (기본값은 보라 카드 느낌) */
       --card-w:640px; --radius:22px; --pad:16px;
       --bg:#7b42f6;   /* 기본 보라 */
       --alpha:.90;    /* 불투명도(1=완전불투명) */
@@ -18,41 +18,27 @@
 
     html,body{
       height:100%; margin:0;
-      background: transparent; /* 주변 완전 투명 */
+      background: transparent; /* 주변 투명 */
       font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;
       color: var(--fg);
     }
+    .wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
 
-    .wrap{
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:12px;
-      box-sizing:border-box;
-    }
-
-    /* 카드 — 컨트롤 프리뷰와 동일한 효과 */
+    /* 카드 */
     .card{
       width:var(--card-w);
       border-radius:var(--radius);
       padding:var(--pad);
-      /* Fallback 단색(OBS 구형 크로뮴 대비) */
+      /* Fallback 단색 (구형 엔진 대비) */
       background: rgba(123,66,246,0.9);
-      /* 최신 브라우저용 혼합+블러 */
+      /* 최신 브라우저용 혼합 + 블러 */
       background: color-mix(in oklab, var(--bg) calc(var(--alpha)*100%), transparent);
       backdrop-filter: blur(var(--blur));
       -webkit-backdrop-filter: blur(var(--blur));
       box-shadow: var(--shadow);
       border:1px solid color-mix(in oklab, #fff 8%, #0000);
     }
-
-    .np{
-      display:grid;
-      grid-template-columns:180px 1fr;
-      gap:16px;
-      align-items:center;
-    }
+    .np{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:center}
 
     .cover{ width:180px; aspect-ratio:1/1; border-radius:14px; overflow:hidden; border:1px solid #00000022 }
     .cover img{ width:100%; height:100%; object-fit:cover }
@@ -73,10 +59,13 @@
   <div class="wrap">
     <div class="card" id="card">
       <div class="np">
-        <div class="cover"><img id="cover" alt="Cover"></div>
+        <div class="cover">
+          <!-- referrer 차단(핫링크 회피), data-cover는 디버그용 -->
+          <img id="cover" alt="Cover" referrerpolicy="no-referrer" data-cover="">
+        </div>
         <div>
           <div class="title" id="title">불러오는 중…</div>
-          <div class="sub" id="meta">가수 / SING🎤 임하밍</div>
+          <div class="sub" id="meta">SING🎤 10cm</div>
           <div class="ctrls">
             <div class="btn-sm">⏮</div><div class="btn-sm play">▶</div><div class="btn-sm">⏭</div>
           </div>
@@ -87,18 +76,19 @@
   </div>
 
   <script>
-  /* ====== 설정/공용 ====== */
+  /* ========= 공통 설정 ========= */
   const STORAGE_KEY = 'np.overlay.style.v3'; // control.html과 동일
-  const params = new URLSearchParams(location.search);
+  const qs = new URLSearchParams(location.search);
+  const urlCoverParam = qs.get('cover');     // 임시 강제 커버 지정용
   const apiUrl = (() => {
-    const p = params.get('api');
+    const p = qs.get('api');
     if (p) return p.replace(/(\?|#).*$/,''); // 쿼리 제거
-    // 리퍼러에 exec가 있을 때 추출(백업)
+    // (백업) 리퍼러에서 exec 추출
     const m = (document.referrer||'').match(/https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/);
     return m ? m[0] : '';
   })();
 
-  /* ====== 로컬에 저장된 스타일 적용(컨트롤과 동일 변수) ====== */
+  /* ========= 컨트롤(localStorage) 스타일 적용 ========= */
   function applyStyleFromLocal(){
     let s = {};
     try { s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(_){}
@@ -113,7 +103,53 @@
   }
   applyStyleFromLocal();
 
-  /* ====== 파형 ====== */
+  /* ========= 커버 URL 정규화(깃허브/상대경로/루트경로/혼합콘텐츠) ========= */
+  function normalizeCover(url) {
+    if (!url) return '';
+    url = String(url).trim();
+
+    // GitHub blob → raw
+    const blob = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+    if (blob) {
+      const [, user, repo, branch, path] = blob;
+      return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${path}`;
+    }
+
+    // 상대경로 → overlay 디렉터리 기준 절대경로
+    if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+      return new URL(url, new URL('./', location.href)).href; // e.g. assets/haming.png
+    }
+
+    // 루트 절대경로('/assets/...') → /overlay/ 보정
+    if (url.startsWith('/')) {
+      return new URL('.' + url, 'https://wlgns4776-code.github.io/overlay/').href;
+    }
+
+    // 혼합콘텐츠(http) → https 프록시
+    if (/^http:\/\//i.test(url)) {
+      const withoutProto = url.replace(/^https?:\/\//, '');
+      return `https://images.weserv.nl/?url=${encodeURIComponent(withoutProto)}`;
+    }
+
+    return url;
+  }
+
+  /* ========= 커버 적용(다단계 폴백 + 디버그 표시) ========= */
+  function setCover(src){
+    const coverEl = document.getElementById('cover');
+    coverEl.dataset.cover = src; // 디버그: 실제 사용 URL
+    coverEl.onerror = () => {
+      // 1차 실패 → 깃허브 Pages에 있는 기본 자산
+      const fallback1 = 'https://wlgns4776-code.github.io/overlay/assets/haming.png';
+      if (coverEl.src !== fallback1) { coverEl.src = fallback1; return; }
+      // 2차 실패 → placeholder
+      const fallback2 = 'https://via.placeholder.com/512?text=Cover';
+      if (coverEl.src !== fallback2) { coverEl.src = fallback2; }
+    };
+    coverEl.src = src;
+  }
+
+  /* ========= 파형 ========= */
   (function(){
     const wave = document.getElementById('wave');
     const bars = 40;
@@ -131,31 +167,44 @@
     }, 260);
   })();
 
-  /* ====== 데이터 가져오기 ====== */
+  /* ========= 데이터 로드 ========= */
   async function fetchData(){
-    if(!apiUrl) return;
+    // 제목/메타 기본 폴백
+    const titleEl = document.getElementById('title');
+    const metaEl  = document.getElementById('meta');
+
+    if(!apiUrl){
+      // api 없으면 param cover나 기본값 사용
+      const first = normalizeCover(urlCoverParam) ||
+                    'https://wlgns4776-code.github.io/overlay/assets/haming.png';
+      setCover(first);
+      return;
+    }
     try{
       const res = await fetch(apiUrl + '?_=' + Date.now()); // 캐시무효화
       const data = await res.json();
 
-      document.getElementById('title').textContent = data.title || '제목 없음';
-      // "가수 / SING🎤 이름" 형태 유지
+      titleEl.textContent = data.title || '제목 없음';
       const singer = data.singer || '';
       const source = data.source || 'SING🎤';
-      document.getElementById('meta').textContent = `${source} ${singer}`.trim();
+      metaEl.textContent  = `${source}  ${singer}`.trim();
 
-      const cover = data.coverUrl || 'https://via.placeholder.com/512?text=Cover';
-      document.getElementById('cover').src = cover;
+      // 우선순위: URL 파라미터 cover > API coverUrl > 깃허브 자산
+      const chosen = normalizeCover(urlCoverParam) ||
+                     normalizeCover(data.coverUrl) ||
+                     'https://wlgns4776-code.github.io/overlay/assets/haming.png';
+      setCover(chosen);
 
-      // (선택) API가 cardColor를 줄 때는 최우선으로 반영
+      // (선택) API가 cardColor를 내려주면 최우선 적용
       if (data.style && data.style.cardColor){
         document.documentElement.style.setProperty('--bg', data.style.cardColor);
-        // alpha/blur/shadow도 내려줄 수 있으면 여기에 추가 반영
       }
     }catch(e){
-      document.getElementById('title').textContent = '불러오기 실패';
+      titleEl.textContent = '불러오기 실패';
+      setCover('https://wlgns4776-code.github.io/overlay/assets/haming.png');
     }
   }
+
   fetchData();
   setInterval(fetchData, 4000);
   </script>
