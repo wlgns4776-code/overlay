@@ -1,59 +1,196 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>오버레이 컨트롤</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
-      background: #0f1320; color: #f5f7fb;
-      margin: 0; padding: 20px;
-    }
-    h1 { font-size: 20px; margin-bottom: 10px; }
-    .box { background:#12172a; padding:16px; border-radius:10px; margin-bottom:20px; }
-    label { display:block; margin:8px 0 4px; }
-    input[type="text"] {
-      width:100%; padding:8px; border-radius:6px; border:none;
-      background:#1e2639; color:#fff;
-    }
-    button {
-      margin-top:12px; padding:10px 14px; border:none;
-      border-radius:6px; cursor:pointer;
-      background:#2d3b52; color:#fff;
-    }
-    button:hover { background:#3b4c6b; }
-    .muted { font-size:13px; opacity:.7; margin-top:8px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Overlay Control</title>
+<style>
+  :root{ --bg:#0f1320; --fg:#f5f7fb; --muted:#a6afbd; --panel:#12172a; --border:#243041; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:20px;display:grid;gap:16px}
+  .box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+  h1{font-size:20px;margin:0 0 10px}
+  h2{font-size:16px;margin:0 0 10px;color:var(--muted)}
+  label{display:block;margin:10px 0 6px}
+  input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#1a2440;color:#fff}
+  .row{display:flex;gap:10px;align-items:center;margin:8px 0}
+  input[type="color"]{width:56px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent}
+  input[type="range"]{flex:1}
+  .btn{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#2d3b52;color:#fff;cursor:pointer}
+  .btn:hover{background:#3b4c6b}
+  .muted{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <h1>🎛 오버레이 컨트롤</h1>
+<div class="wrap">
+  <h1>🎛 Overlay Control</h1>
 
   <div class="box">
-    <label>오버레이 기본 주소</label>
-    <input type="text" id="baseUrl" value="https://wlgns4776-code.github.io/overlay/overlay.html" readonly />
-    <button id="copyBtn">📋 주소 복사</button>
-    <div class="muted">이 주소를 방송 프로그램(OBS, 프릭샷 등)의 브라우저 소스로 등록하세요.</div>
+    <h2>1) Apps Script JSON API</h2>
+    <label>실행 URL( /exec )</label>
+    <input id="api" type="text" placeholder="예: https://script.google.com/macros/s/XXXXXXXX/exec" />
+    <div class="row">
+      <button class="btn" id="saveApi">저장</button>
+      <span class="muted">저장하면 아래 주소에 자동 반영돼요.</span>
+    </div>
   </div>
 
-  <div class="box">
-    <label>가사 팝업</label>
-    <button id="popupBtn">🪟 팝업 열기</button>
-    <div class="muted">방송 중에 별도로 가사만 확인하고 싶을 때 사용합니다.</div>
-  </div>
+  <div class="box grid">
+    <div>
+      <h2>2) 카드 스타일</h2>
+      <div class="row"><label>배경색</label><input type="color" id="cardHex" value="#10131b"></div>
+      <div class="row"><label>투명도</label><input type="range" id="cardAlpha" min="0" max="100" value="55"><span id="cardAlphaOut" class="muted">55%</span></div>
+      <div class="row"><label>블러</label><input type="range" id="cardBlur" min="0" max="30" value="8"><span id="cardBlurOut" class="muted">8px</span></div>
+      <div class="row"><label>그림자</label><input type="range" id="cardShadow" min="0" max="100" value="35"><span id="cardShadowOut" class="muted">35</span></div>
+      <div class="row"><label>모서리 반경</label><input type="range" id="radius" min="0" max="40" value="16"><span id="radiusOut" class="muted">16px</span></div>
 
-  <script>
-    document.getElementById("copyBtn").addEventListener("click", ()=>{
-      const url = document.getElementById("baseUrl").value;
-      navigator.clipboard.writeText(url).then(()=>{
-        alert("주소가 클립보드에 복사되었습니다:\n" + url);
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button class="btn" id="sendRealtime">같은 PC 오버레이에 실시간 적용</button>
+        <span class="muted">OBS/프릭샷 브라우저 소스가 같은 PC에서 <code>overlay.html</code>을 열고 있으면 즉시 반영</span>
+      </div>
+    </div>
+
+    <div>
+      <h2>3) 방송/팝업 주소</h2>
+      <label>방송용(카드만) 주소</label>
+      <input id="overlayUrl" type="text" readonly />
+      <div class="row">
+        <button class="btn" id="copyOverlay">복사</button>
+        <button class="btn" id="openOverlay">미리보기</button>
+      </div>
+
+      <label style="margin-top:12px">가사 팝업 주소</label>
+      <input id="lyricsUrl" type="text" readonly />
+      <div class="row">
+        <button class="btn" id="copyLyrics">복사</button>
+        <button class="btn" id="openLyrics">팝업 열기</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px">
+        • 방송 프로그램에는 <strong>방송용(카드만) 주소</strong>를 브라우저 소스로 등록하세요.<br>
+        • 가사는 필요할 때만 팝업 버튼으로 별도 창에서 봅니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const GH_BASE = location.origin + location.pathname.replace(/\/control\.html.*$/,'/') + 'overlay.html';
+
+  // === 엘리먼트
+  const $ = (id)=>document.getElementById(id);
+  const $api = $('api');
+
+  const inputs = {
+    cardHex: $('cardHex'),
+    cardAlpha: $('cardAlpha'),
+    cardBlur: $('cardBlur'),
+    cardShadow: $('cardShadow'),
+    radius: $('radius'),
+  };
+  const outs = {
+    cardAlphaOut: $('cardAlphaOut'),
+    cardBlurOut: $('cardBlurOut'),
+    cardShadowOut: $('cardShadowOut'),
+    radiusOut: $('radiusOut'),
+  };
+
+  // 저장/로드
+  const store = {
+    load(){
+      $api.value = localStorage.getItem('overlay_api') || '';
+      inputs.cardHex.value = localStorage.getItem('cardHex') || '#10131b';
+      inputs.cardAlpha.value = localStorage.getItem('cardAlpha') || '55';
+      inputs.cardBlur.value = localStorage.getItem('cardBlur') || '8';
+      inputs.cardShadow.value = localStorage.getItem('cardShadow') || '35';
+      inputs.radius.value = localStorage.getItem('radius') || '16';
+      reflectOutputs();
+      buildUrls();
+    },
+    save(){
+      localStorage.setItem('overlay_api', $api.value.trim());
+      localStorage.setItem('cardHex', inputs.cardHex.value);
+      localStorage.setItem('cardAlpha', inputs.cardAlpha.value);
+      localStorage.setItem('cardBlur', inputs.cardBlur.value);
+      localStorage.setItem('cardShadow', inputs.cardShadow.value);
+      localStorage.setItem('radius', inputs.radius.value);
+      buildUrls();
+    }
+  };
+
+  function reflectOutputs(){
+    outs.cardAlphaOut.textContent = inputs.cardAlpha.value+'%';
+    outs.cardBlurOut.textContent  = inputs.cardBlur.value+'px';
+    outs.cardShadowOut.textContent= inputs.cardShadow.value;
+    outs.radiusOut.textContent    = inputs.radius.value+'px';
+  }
+
+  // URL 생성
+  function buildQuery(){
+    const p = new URLSearchParams();
+    if ($api.value.trim()) p.set('api', $api.value.trim());
+    p.set('cardHex', inputs.cardHex.value);
+    p.set('cardAlpha', inputs.cardAlpha.value);
+    p.set('cardBlur', inputs.cardBlur.value);
+    p.set('cardShadow', inputs.cardShadow.value);
+    p.set('radius', inputs.radius.value);
+    return p.toString();
+  }
+  function buildUrls(){
+    const q = buildQuery();
+    $('overlayUrl').value = GH_BASE + (q ? ('?' + q) : '');
+    $('lyricsUrl').value  = GH_BASE + '?popup=lyrics' + (q ? ('&' + q) : '');
+  }
+
+  // 이벤트 바인딩
+  $('saveApi').addEventListener('click', ()=>{ store.save(); alert('저장 완료'); });
+
+  Object.values(inputs).forEach(el=>{
+    el.addEventListener('input', ()=>{ reflectOutputs(); store.save(); });
+  });
+
+  function copy(id){ navigator.clipboard.writeText($(id).value).then(()=>alert('복사되었습니다.\n' + $(id).value)); }
+  $('copyOverlay').addEventListener('click', ()=>copy('overlayUrl'));
+  $('copyLyrics').addEventListener('click', ()=>copy('lyricsUrl'));
+  $('openOverlay').addEventListener('click', ()=>window.open($('overlayUrl').value,'_blank'));
+  $('openLyrics').addEventListener('click', ()=>window.open($('lyricsUrl').value,'lyrics_popup','width=420,height=700,resizable=yes,scrollbars=yes'));
+
+  // 같은 PC 실시간 적용 (BroadcastChannel)
+  $('sendRealtime').addEventListener('click', ()=>{
+    try{
+      const bc = new BroadcastChannel('overlay-style');
+      // CSS 변수 값 계산 (오버레이 쪽 계산식과 동일하게 만들어 전송)
+      const a = Math.max(0,Math.min(100,Number(inputs.cardAlpha.value)))/100;
+      const hex = inputs.cardHex.value.replace('#','');
+      const val = (hex.length===3?hex.split('').map(x=>x+x).join(''):hex);
+      const n = parseInt(val,16);
+      const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+      const backdrop = `rgba(${r},${g},${b},${a})`;
+      const shadow = `0 ${6+inputs.cardShadow.value/4}px ${18+inputs.cardShadow.value/2}px rgba(0,0,0,${0.15+inputs.cardShadow.value/160})`;
+
+      bc.postMessage({
+        type:'style-vars',
+        payload:{
+          '--card-backdrop': backdrop,
+          '--card-blur': inputs.cardBlur.value+'px',
+          '--card-shadow': shadow,
+          '--radius': inputs.radius.value+'px'
+        }
       });
-    });
+      alert('보냈습니다! (같은 PC에서 overlay.html을 열고 있어야 적용돼요)');
+    }catch(e){
+      alert('브라우저가 실시간 전송을 지원하지 않아요.');
+    }
+  });
 
-    document.getElementById("popupBtn").addEventListener("click", ()=>{
-      const url = document.getElementById("baseUrl").value + "?popup=lyrics";
-      window.open(url, "lyrics_popup", "width=420,height=700,resizable=yes,scrollbars=yes");
-    });
-  </script>
+  // 초기 로드
+  store.load();
+})();
+</script>
 </body>
 </html>
