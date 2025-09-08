@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>가사</title>
+<style>
+  :root{ --bg:#0b0f18; --fg:#eaf0ff; --muted:#9db0cf }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
+            font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif}
+  header{position:sticky;top:0;background:#0f1628;padding:10px 14px;border-bottom:1px solid #1c2740}
+  header .title{font-weight:700}
+  main{height:calc(100% - 52px);overflow:auto;padding:18px}
+  #ly{white-space:pre-wrap;line-height:1.7;font-size:18px}
+  .muted{color:var(--muted);font-size:13px}
+  .err{color:#ff7a7a}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">가사</div>
+    <div id="meta" class="muted"></div>
+  </header>
+  <main>
+    <div id="ly">불러오는 중…</div>
+  </main>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const API = qs.get('api') ? qs.get('api').replace(/(\?|#).*$/,'') : '';
+const meta = document.getElementById('meta');
+const out  = document.getElementById('ly');
+
+function pickLyrics(obj){
+  // 다양한 키 지원 (API마다 다름)
+  return (
+    obj?.lyrics ??
+    obj?.lyric ??
+    obj?.text ??
+    obj?.content ??
+    (Array.isArray(obj?.lines) ? obj.lines.join('\n') : undefined) ??
+    ''
+  );
+}
+
+async function load(){
+  if(!API){ out.textContent='API 주소가 없습니다.'; out.className='err'; return; }
+  try{
+    const res = await fetch(API + '?_=' + Date.now(), { mode: 'cors' });
+    const raw = await res.text();
+
+    let data = {};
+    try { data = JSON.parse(raw); } catch { /* JSON 아니면 무시 */ }
+
+    // 메타 표시
+    const title  = data.title  || '';
+    const singer = data.singer || '';
+    meta.textContent = [title, singer && `· ${singer}`].filter(Boolean).join(' ');
+
+    // 가사 추출
+    let lyrics = pickLyrics(data);
+
+    // JSON이 아니고 가사가 비었으면 원본 텍스트를 보여줌(서버가 텍스트로 주는 경우)
+    if(!lyrics){
+      // HTML 본문으로 오는 경우 태그 제거
+      const tmp = document.createElement('div');
+      tmp.innerHTML = raw;
+      const stripped = tmp.textContent || tmp.innerText || '';
+      lyrics = stripped.trim();
+    }
+
+    out.textContent = (lyrics || '가사가 없습니다.').trim();
+  }catch(e){
+    out.textContent = '가사를 불러오지 못했습니다.';
+    out.className='err';
+  }
+}
+
+// 초기 로드 + 2초 간격 업데이트
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>
