@@ -1,67 +1,68 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Now Playing • Overlay</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Now Playing · Overlay</title>
 <style>
 :root{
-  --card-w: 640px;
-  --radius: 16px;
-  --pad: 14px;
-  --fg:#f5f7fb;
-
-  /* 서버에서 들어오는 값으로 덮어씀 */
-  --card-backdrop: rgba(16,19,27,.55);
-  --card-blur: 8px;
-  --card-shadow: 0 12px 30px rgba(0,0,0,.35);
+  --card-w:640px;
+  --radius:22px;
+  --pad:16px;
+  --bg:#0b0b0f;           /* 카드 내부 기본 회색(알파로 희석됨) */
+  --alpha:0.55;           /* 투명도(0~1) */
+  --blur:8px;             /* 배경 블러 */
+  --shadow:0 16px 40px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{
-  background: transparent;           /* ✅ 방송용 투명 배경 */
-  color:var(--fg); font-family: system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+  /* 화면은 완전 투명 → 방송에 카드만 보임 */
+  background: transparent;
+  color:#f5f7fb;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
 }
-
-/* 화면 중앙 카드 하나만 */
-.wrap{display:grid;place-items:center;height:100%}
-
-/* 카드(고정폭 640px) */
+/* 카드만 가운데 */
+.wrap{min-height:100%;display:grid;place-items:center}
 .card{
   width:var(--card-w); max-width:var(--card-w); min-width:var(--card-w);
-  border-radius:var(--radius); padding:var(--pad);
-  backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur));
-  background:var(--card-backdrop); box-shadow:var(--card-shadow);
-  border:1px solid rgba(36,48,65,.65);
+  border-radius:var(--radius);
+  padding:var(--pad);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  background: color-mix(in oklab, var(--bg) calc(var(--alpha)*100%), transparent);
+  box-shadow: var(--shadow);
+  border:1px solid color-mix(in oklab, #ffffff 8%, #0000);
 }
-
-.np{display:grid;grid-template-columns:180px 1fr; gap:16px; align-items:center}
-.cover{width:180px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid rgba(36,48,65,.65)}
-.cover img{width:100%;height:100%;object-fit:cover;display:block}
-
-.tit{font-weight:800;font-size:22px;line-height:1.3;margin:0 0 2px 0}
-.sub{opacity:.9;font-size:14px;margin:0 0 8px 0}
-.ctrls{display:flex;align-items:center;gap:10px}
-.btn{width:36px;height:36px;border-radius:999px;border:1px solid rgba(36,48,65,.65);background:#0f1421;display:grid;place-items:center}
-.btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
-
-.wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
-.bar{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
+/* 내부 레이아웃 */
+.np{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:center}
+.cover{width:180px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid #00000022}
+.cover img{width:100%;height:100%;object-fit:cover}
+.title{font-weight:800;font-size:22px;line-height:1.25}
+.sub{opacity:.9;font-size:14px;margin-top:2px}
+.ctrls{display:flex;align-items:center;gap:12px;margin:8px 0}
+.btn{width:36px;height:36px;border-radius:999px;border:1px solid #12172333;background:#0e1320;color:#fff;display:grid;place-items:center}
+.play{width:44px;height:44px;background:#fff;color:#111;border:none}
+.wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:6px}
+.bar{width:5px;background:#fff;border-radius:3px;opacity:.25}
 .bar.active{opacity:1}
+
+/* 소스 추가 시 여백 없이 카드만 보이도록 */
+html,body,.wrap{background: transparent !important}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card">
+  <div class="card" id="card">
     <div class="np">
-      <div class="cover"><img id="cov" alt="cover"></div>
+      <div class="cover"><img id="cover" alt=""></div>
       <div>
-        <div class="tit" id="title">불러오는 중…</div>
+        <div class="title" id="title">불러오는 중…</div>
         <div class="sub" id="sub">가수 / SING🎤 임하밍</div>
         <div class="ctrls">
-          <div class="btn">⏮</div>
-          <div class="btn primary">▶</div>
-          <div class="btn">⏭</div>
+          <button class="btn">⏮</button>
+          <button class="btn play">▶</button>
+          <button class="btn">⏭</button>
         </div>
         <div class="wave" id="wave"></div>
       </div>
@@ -70,57 +71,78 @@ body{
 </div>
 
 <script>
-(function(){
-  /* ===== 기본 설정 ===== */
-  const qs = new URLSearchParams(location.search);
-  const API_BASE = qs.get('api') || '';                   // ?api=GAS_EXEC_URL
-  const DEFAULT_COVER = './assets/haming.png';            // 리포지토리의 고정 이미지
-  const $ = id => document.getElementById(id);
-  const $title=$('title'), $sub=$('sub'), $cov=$('cov');
-
-  /* ===== 파형 ===== */
-  const wave = document.getElementById('wave');
-  const bars=40, heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
-  const barEls = heights.map(h=>{ const d=document.createElement('div'); d.className='bar'; d.style.height=h+'px'; wave.appendChild(d); return d; });
-  let idx=0; setInterval(()=>{ barEls.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
-
-  /* ===== 유틸 ===== */
-  const hexToRgba = (hex,a=1)=>{const m=hex.replace('#','');const v=(m.length===3?m.split('').map(x=>x+x).join(''):m);const n=parseInt(v,16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;};
-  const shadowVal = v => {v=Math.max(0,Math.min(100,Number(v))); return `0 ${6+v/4}px ${18+v/2}px rgba(0,0,0,${0.15+v/160})`;};
-
-  /* ===== 데이터/스타일 폴링 ===== */
-  async function j(url, opt){ const r=await fetch(url, opt); return r.json(); }
-
-  async function pullNow(){
-    if (!API_BASE) return;
-    try{
-      const d = await j(API_BASE + '?nocache=' + Date.now());
-      const singer = (d && d.singer)||''; const title=(d && d.title)||''; const lyrics=(d && d.lyrics)||'';
-      if ($title) $title.textContent = title || singer || '체크된 곡이 없습니다';
-      if ($sub)   $sub.textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
-      if ($cov)   $cov.src = DEFAULT_COVER;
-    }catch(e){ /* ignore */ }
-  }
-
-  async function pullStyle(){
-    if (!API_BASE) return;
-    try{
-      const c = await j(API_BASE + '?action=getConfig&nocache=' + Date.now());
-      const card = c && c.card || {};
-      const hex = card.color || '#10131b';
-      const a   = (card.alpha ?? 55)/100;
-      const blur= (card.blur ?? 8) + 'px';
-      const sh  = card.shadow ?? 35;
-      document.documentElement.style.setProperty('--card-backdrop', hexToRgba(hex, a));
-      document.documentElement.style.setProperty('--card-blur', blur);
-      document.documentElement.style.setProperty('--card-shadow', shadowVal(sh));
-    }catch(e){/* ignore */}
-  }
-
-  pullNow(); pullStyle();
-  setInterval(pullNow,   2000);
-  setInterval(pullStyle, 2000);
+/* ===== 설정 ===== */
+const STORAGE_KEY = 'np.overlay.style.v3';
+const DEFAULT_COVER = 'assets/haming.png';       // 깃허브에 올려둔 고정 커버
+/* ===== util ===== */
+const qs = new URLSearchParams(location.search);
+const API = (()=>{
+  // 1) ?api= 우선
+  const p = qs.get('api'); if (p) return p.replace(/(\?|#).*$/,'');
+  // 2) 리퍼러/현재주소에서 추정
+  const m = (document.referrer||'').match(/https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/);
+  return m?m[0]:'';
 })();
+
+const $ = s=>document.querySelector(s);
+function applyStyleFromJson(obj){
+  try{
+    const root = document.documentElement;
+    if (obj.hex) root.style.setProperty('--bg', obj.hex);
+    if (typeof obj.alpha === 'number') root.style.setProperty('--alpha', String(obj.alpha/100));
+    if (typeof obj.blur === 'number')  root.style.setProperty('--blur', obj.blur+'px');
+    if (typeof obj.shadow === 'number'){
+      const v = obj.shadow; // 0~100 → 그림자 세기
+      root.style.setProperty('--shadow', `0 ${6+v/4}px ${18+v/2}px rgba(0,0,0,${0.15+v/160})`);
+    }
+  }catch(_){}
+}
+
+/* ===== 파형 ===== */
+(function(){
+  const wave = $('#wave'); const bars=40;
+  const hs = Array.from({length:bars},(_,i)=>16+Math.round((Math.sin(i*1.2)*.5+.5)*40));
+  const els = hs.map(h=>{const d=document.createElement('div');d.className='bar';d.style.height=h+'px';wave.appendChild(d);return d;});
+  let idx=0; setInterval(()=>{els.forEach((el,i)=>el.classList.toggle('active',i<=idx)); idx=(idx+1)%bars;},260);
+})();
+
+/* ===== 스타일 Polling (컨트롤에서 변경 즉시 반영) ===== */
+let lastStyle = '';
+function checkStyle(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY)||'';
+    if (raw && raw !== lastStyle){
+      lastStyle = raw;
+      applyStyleFromJson(JSON.parse(raw));
+    }
+  }catch(_){}
+}
+checkStyle();
+setInterval(checkStyle, 1000); // 1초마다 감지
+
+/* ===== 데이터 폴링 ===== */
+async function fetchJson(u){
+  const res = await fetch(u, {cache:'no-store'});
+  const ct = res.headers.get('content-type')||'';
+  if (ct.includes('application/json')) return res.json();
+  const t = await res.text(); try{return JSON.parse(t);}catch{throw new Error('Not JSON')}
+}
+async function tick(init){
+  if(!API){ $('#title').textContent='API 미설정'; $('#sub').textContent=''; return; }
+  try{
+    const d = await fetchJson(API+'?nocache='+Date.now());
+    const singer = (d && d.singer)?String(d.singer).trim():'';
+    const title  = (d && d.title )?String(d.title ).trim() :'';
+    const cover  = DEFAULT_COVER; // 항상 고정
+    $('#title').textContent = title || singer || '체크된 곡이 없습니다';
+    $('#sub').textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
+    const img = $('#cover'); img.src = cover; img.alt = title || 'cover';
+  }catch(e){
+    if(init){ $('#title').textContent='불러오기에 실패했어요'; $('#sub').textContent=''; }
+    console.error(e);
+  }
+}
+tick(true); setInterval(tick, 2000);
 </script>
 </body>
 </html>
