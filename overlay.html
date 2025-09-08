@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -8,16 +8,25 @@
 :root{
   --bg:#0b0b0f; --fg:#f5f7fb; --muted:#a6afbd;
   --border:#243041; --panel:#0f1320; --control:#12172a;
-  --radius:16px; --pad:14px; --gap:70px;
-  --card-w:640px; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+  --radius:16px; --pad:14px; --gap:70px;         /* 카드-가사 간격 */
+  --card-w:640px;                                /* 카드 고정 폭 */
+  --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
 
-  --card-blur:8px; --card-backdrop:rgba(16,19,27,0.55); --card-shadow:0 12px 30px rgba(0,0,0,.35);
-  --lyr-blur:8px;  --lyr-backdrop:rgba(16,19,27,0.30);  --lyr-shadow:0 12px 30px rgba(0,0,0,.25);
+  --card-blur:8px;
+  --card-backdrop:rgba(16,19,27,0.55);
+  --card-shadow:0 12px 30px rgba(0,0,0,.35);
+
+  --lyr-blur:8px;
+  --lyr-backdrop:rgba(16,19,27,0.30);
+  --lyr-shadow:0 12px 30px rgba(0,0,0,.25);
 }
+
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font)}
 .app{display:grid;grid-template-columns:320px 1fr;height:100%}
+
+/* 왼쪽 컨트롤 패널 */
 .panel{padding:16px;border-right:1px solid var(--border);background:var(--panel);overflow:auto}
 .panel h2{font-size:16px;margin:8px 0 12px}
 .row{display:flex;align-items:center;gap:8px;margin:10px 0}
@@ -29,34 +38,98 @@ input[type="range"]{width:100%}
 input[type="color"]{width:56px;height:32px;border:1px solid var(--border);border-radius:8px;padding:0;background:transparent}
 .btn{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--control);color:var(--fg);cursor:pointer}
 .muted{color:var(--muted)} .small{font-size:12px}
-.stage{padding:18px;height:100%;overflow:auto}
-.now-wrap{display:grid;grid-template-columns: var(--card-w) minmax(28ch, 42ch); gap: var(--gap); align-items: center;}
-@media (max-width: 1100px){ .now-wrap{ grid-template-columns: 1fr; align-items:start; } }
-@media (max-width: 600px){ .now-wrap{ grid-template-columns: 1fr; } .card{ width:100%; max-width:100%; min-width:0; } }
 
-.card{width:var(--card-w);max-width:var(--card-w);min-width:var(--card-w);border:1px solid var(--border);
-  border-radius:var(--radius);padding:var(--pad);backdrop-filter:blur(var(--card-blur));-webkit-backdrop-filter:blur(var(--card-blur));
-  background:var(--card-backdrop);box-shadow:var(--card-shadow)}
-.np{display:grid;gap:16px;grid-template-columns: 180px 1fr;align-items:center}
-.np-cover{width:180px;aspect-ratio:1/1;border-radius:14px;background:#1114;display:flex;align-items:center;justify-content:center;
-  overflow:hidden;border:1px solid var(--border)}
+/* 오른쪽 표시 영역 */
+.stage{padding:18px;height:100%;overflow:auto}
+
+/* 카드+가사 2열 — 카드 고정폭 */
+.now-wrap{
+  display:grid;
+  grid-template-columns: var(--card-w) minmax(28ch, 42ch);
+  gap: var(--gap);
+  align-items: center;             /* 가사 높이에 맞춰 카드 수직 중앙 */
+}
+@media (max-width: 1100px){
+  .now-wrap{ grid-template-columns: 1fr; align-items:start; }
+}
+@media (max-width: 600px){
+  .now-wrap{ grid-template-columns: 1fr; }
+  .card{ width:100%; max-width:100%; min-width:0; }
+}
+
+/* 플레이어 카드 — 고정폭 */
+.card{
+  width: var(--card-w);
+  max-width: var(--card-w);
+  min-width: var(--card-w);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:var(--pad);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  background:var(--card-backdrop);
+  box-shadow:var(--card-shadow);
+}
+.np{
+  display:grid;
+  gap:16px;
+  grid-template-columns: 180px 1fr;
+  align-items:center;
+}
+.np-cover{
+  width:180px; aspect-ratio:1/1; border-radius:14px;
+  background:#1114; display:flex;align-items:center;justify-content:center;
+  overflow:hidden; border:1px solid var(--border);
+}
 .np-cover img{width:100%;height:100%;object-fit:cover}
-.np-placeholder{width:100%;height:100%;display:grid;place-items:center;color:#7c8597;font-weight:700;font-size:14px;background:rgba(255,255,255,.03)}
-.np-title{font-weight:800;font-size:22px;letter-spacing:.2px;line-height:1.3;white-space:normal;word-break:keep-all;line-break:anywhere}
+.np-placeholder{
+  width:100%;height:100%;display:grid;place-items:center;color:#7c8597;
+  font-weight:700;font-size:14px;background:rgba(255,255,255,.03);
+}
+.np-title{
+  font-weight:800; font-size:22px; letter-spacing:.2px; line-height:1.3;
+  white-space: normal; word-break: keep-all; line-break: anywhere;
+}
 .np-artist{color:var(--fg);opacity:.85;font-size:14px;margin-top:2px}
+
+/* 진행바/시간 숨김 */
 .np-progress{display:none}
+
+/* 컨트롤/파형 */
 .np-ctrls{display:flex;align-items:center;gap:14px;margin-top:8px}
 .np-btn{width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--control);display:grid;place-items:center;cursor:pointer}
 .np-btn.primary{width:44px;height:44px;background:#fff;color:#111;border:none}
+.np-btn svg{display:block}
+.np-heart{margin-left:auto}
+.np-heart[data-liked="true"] svg path{ fill:#ef4444; stroke:#ef4444 }
+
 .np-wave{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:10px}
 .np-barline{width:5px;background:#fff;border-radius:3px;opacity:.25;transition:opacity .15s}
 .np-barline.active{opacity:1}
 
-.lyrics{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--lyr-backdrop);
-  backdrop-filter:blur(var(--lyr-blur));-webkit-backdrop-filter:blur(var(--lyr-blur));box-shadow:var(--lyr-shadow);
-  width:max-content;min-width:28ch;max-width:min(70ch,96vw);max-height:calc(100vh - 80px);overflow:auto;white-space:pre-wrap;line-height:1.55}
-.lyrics h3{margin:0 0 8px 0;font-size:16px;color:var(--muted);font-weight:600}
+/* 가사 박스 */
+.lyrics{
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
 
+  background:var(--lyr-backdrop);
+  backdrop-filter: blur(var(--lyr-blur));
+  -webkit-backdrop-filter: blur(var(--lyr-blur));
+  box-shadow: var(--lyr-shadow);
+
+  width:max-content;
+  min-width:28ch;
+  max-width:min(70ch,96vw);
+
+  max-height:calc(100vh - 80px);
+  overflow:auto;
+  white-space:pre-wrap;
+  line-height:1.55;
+}
+.lyrics h3{margin:0 0 8px 0; font-size:16px; color:var(--muted); font-weight:600}
+
+/* 오버레이 모드: 좌측 패널 숨김 (필요시 ?overlay=1) */
 .overlay .app{grid-template-columns:1fr}
 .overlay .panel{display:none}
 .overlay body{background:transparent}
@@ -65,61 +138,84 @@ input[type="color"]{width:56px;height:32px;border:1px solid var(--border);border
 </head>
 <body>
 <div class="app">
-  <!-- 왼쪽 패널 -->
+  <!-- 왼쪽 컨트롤 패널 -->
   <aside class="panel">
-    <h2>데이터</h2>
-    <div class="small muted">
-      API: <span id="apiHint">-</span><br/>
-      스타일 API: <span id="styleHint">-</span>
-    </div>
-
     <h2>프리셋</h2>
     <div class="seg" id="presets">
       <button data-preset="dark"  class="active">다크</button>
       <button data-preset="light">라이트</button>
+      <button data-preset="darkA">다크A</button>
+      <button data-preset="lightA">라이트A</button>
     </div>
 
     <h2>표시 카드 스타일</h2>
-    <div class="row"><label style="width:90px">반경</label><input id="radius" type="range" min="8" max="30" value="16"><span class="muted" id="radiusOut">16px</span></div>
+    <div class="seg" id="styleSeg">
+      <button data-style="round" class="active">원형</button>
+      <button data-style="square">사각형</button>
+      <button data-style="fill">채움</button>
+    </div>
 
+    <!-- 카드 배경 컨트롤 -->
     <h2>카드 배경</h2>
-    <div class="row"><label style="width:90px">색상</label><input id="cardColor" type="color" value="#10131b"><span id="cardColorHex" class="muted" style="margin-left:8px">#10131B</span></div>
+    <div class="row">
+      <label style="width:90px">색상</label>
+      <input id="cardColor" type="color" value="#10131b">
+      <span id="cardColorHex" class="muted" style="margin-left:8px">#10131B</span>
+    </div>
     <div class="row"><label style="width:90px">투명도</label><input id="cardAlpha" type="range" min="0" max="100" value="55"><span class="muted" id="cardAlphaOut">55%</span></div>
+    <div class="row"><label style="width:90px">블러</label><input id="cardBlur" type="range" min="0" max="30" value="8"><span class="muted" id="cardBlurOut">8px</span></div>
+    <div class="row"><label style="width:90px">그림자</label><input id="cardShadow" type="range" min="0" max="100" value="35"><span class="muted" id="cardShadowOut">35</span></div>
 
+    <!-- 가사 배경 컨트롤 -->
     <h2>가사 배경</h2>
-    <div class="row"><label style="width:90px">색상</label><input id="lyrColor" type="color" value="#10131b"><span id="lyrColorHex" class="muted" style="margin-left:8px">#10131B</span></div>
+    <div class="row">
+      <label style="width:90px">색상</label>
+      <input id="lyrColor" type="color" value="#10131b">
+      <span id="lyrColorHex" class="muted" style="margin-left:8px">#10131B</span>
+    </div>
     <div class="row"><label style="width:90px">투명도</label><input id="lyrAlpha" type="range" min="0" max="100" value="30"><span class="muted" id="lyrAlphaOut">30%</span></div>
+    <div class="row"><label style="width:90px">블러</label><input id="lyrBlur" type="range" min="0" max="30" value="8"><span class="muted" id="lyrBlurOut">8px</span></div>
+    <div class="row"><label style="width:90px">그림자</label><input id="lyrShadow" type="range" min="0" max="100" value="25"><span class="muted" id="lyrShadowOut">25</span></div>
 
     <h2>동작</h2>
     <div class="seg">
-      <button class="btn" id="saveStyle">스타일 저장(동기화)</button>
-      <button class="btn" id="copyLink">현재 스타일 링크 복사</button>
+      <button class="btn" id="copyLink">오버레이 링크 복사</button>
+      <button class="btn" id="openLyricsPopup">가사 팝업 열기</button>
     </div>
     <div class="small muted" id="status"></div>
   </aside>
 
-  <!-- 오른쪽: 카드 + 가사 -->
+  <!-- 오른쪽: 플레이어 카드 + 가사 -->
   <main class="stage">
     <div class="now-wrap">
-      <div class="card">
+      <div class="card" id="card">
         <div class="np">
           <div class="np-cover">
             <img id="cover" alt="Album cover" src="" style="display:none"/>
             <div class="np-placeholder" id="coverPh">COVER</div>
           </div>
+
           <div class="np-main">
             <div class="np-title" id="title">불러오는 중…</div>
             <div class="np-artist" id="sub"></div>
+
+            <!-- 진행바는 숨김 -->
+            <div class="np-progress"></div>
+
             <div class="np-ctrls">
-              <button class="np-btn">⏮</button>
-              <button class="np-btn primary">▶</button>
-              <button class="np-btn">⏭</button>
+              <button class="np-btn" title="이전">⏮</button>
+              <button class="np-btn primary" id="btnPlay" title="재생/일시정지">▶</button>
+              <button class="np-btn" title="다음">⏭</button>
+              <button class="np-btn np-heart" id="btnLike" title="좋아요">♥</button>
             </div>
+
+            <!-- 파형 -->
             <div class="np-wave" id="wave"></div>
           </div>
         </div>
       </div>
-      <div class="lyrics">
+
+      <div class="lyrics" id="lyricsBox">
         <h3>가사</h3>
         <div id="lyrics">가사가 여기에 표시됩니다.</div>
       </div>
@@ -129,158 +225,200 @@ input[type="color"]{width:56px;height:32px;border:1px solid var(--border);border
 
 <script>
 (function(){
-  const qs = new URLSearchParams(location.search);
-  // === 필수: Apps Script JSON 엔드포인트들 ===
-  const API_NOW   = (qs.get('api')   || '').trim(); // …/exec?action=now
-  const API_STYLE = (qs.get('sapi')  || '').trim(); // …/exec?action=getStyle / setStyle
-  const SAVE_KEY  = (qs.get('key')   || '').trim(); // 있다면 setStyle 시 같이 전송
-  const OVERLAY   = qs.get('overlay')==='1';
+  /* ====== 1) API 주소 결정 ====== */
+  // 기본값: 네 Apps Script JSON(원하면 교체 OK)
+  const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzXasqU71YyBFBazUB6oZpPBPh2tGPNQH4frh-QXtRZVEKAlbNOlxn5dgSRMxRvxjvz/exec';
 
-  if (OVERLAY) document.documentElement.classList.add('overlay');
-  document.getElementById('apiHint').textContent   = API_NOW   || '(미설정)';
-  document.getElementById('styleHint').textContent = API_STYLE || '(미설정)';
+  const qs = new URLSearchParams(location.search);
+  const PARAM_API = (qs.get('api') || '').trim();
+  const API_BASE = PARAM_API || DEFAULT_API;
+
+  // 오버레이 전용(패널 숨김) 옵션: ?overlay=1
+  if (qs.get('overlay') === '1') document.documentElement.classList.add('overlay');
 
   const $ = id => document.getElementById(id);
-  const $title=$('title'), $sub=$('sub'), $lyrics=$('lyrics'), $cover=$('cover'), $coverPh=$('coverPh');
+  const $title=$('title'), $sub=$('sub'), $lyrics=$('lyrics'),
+        $cover=$('cover'), $coverPh=$('coverPh'), $status=$('status');
 
-  // ===== 파형(장식)
-  (function(){
-    const wave = $('wave'); if (!wave) return;
-    const bars=40;
-    const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
-    const els = heights.map(h=>{ const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d; });
-    let idx=0; setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
-  })();
+  /* ====== 2) 스타일 컨트롤 ====== */
+  function hexToRgb(hex){ const m=hex.replace('#',''); const v=(m.length===3?m.split('').map(x=>x+x).join(''):m); const n=parseInt(v,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function shadowVal(v){ v=Math.max(0,Math.min(100,Number(v))); return `0 ${6+v/4}px ${18+v/2}px rgba(0,0,0,${0.15+v/160})`; }
 
-  // ===== 스타일 적용
-  function applyVars({cardColor, cardAlpha, lyrColor, lyrAlpha, radius}){
-    // 카드
-    const cc = cardColor || '#10131b';
-    const ca = Math.max(0, Math.min(100, Number(cardAlpha||55)))/100;
-    const {r:cr,g:cg,b:cb} = hexToRgb(cc);
-    document.documentElement.style.setProperty('--card-backdrop', `rgba(${cr},${cg},${cb},${ca})`);
-    // 가사
-    const lc = lyrColor || '#10131b';
-    const la = Math.max(0, Math.min(100, Number(lyrAlpha||30)))/100;
-    const {r:lr,g:lg,b:lb} = hexToRgb(lc);
-    document.documentElement.style.setProperty('--lyr-backdrop', `rgba(${lr},${lg},${lb},${la})`);
-    // 반경
-    const rad = Number(radius||16); document.documentElement.style.setProperty('--radius', rad+'px');
+  const $cardColor=$('cardColor'), $cardColorHex=$('cardColorHex');
+  const $cardAlpha=$('cardAlpha'), $cardAlphaOut=$('cardAlphaOut');
+  const $cardBlur=$('cardBlur'), $cardBlurOut=$('cardBlurOut');
+  const $cardShadow=$('cardShadow'), $cardShadowOut=$('cardShadowOut');
 
-    // 패널 표시 업데이트
-    $('cardColor').value = toHex(cc); $('cardAlpha').value = Math.round(ca*100);
-    $('lyrColor').value  = toHex(lc); $('lyrAlpha').value  = Math.round(la*100);
-    $('radius').value    = rad;
+  const $lyrColor=$('lyrColor'), $lyrColorHex=$('lyrColorHex');
+  const $lyrAlpha=$('lyrAlpha'), $lyrAlphaOut=$('lyrAlphaOut');
+  const $lyrBlur=$('lyrBlur'), $lyrBlurOut=$('lyrBlurOut');
+  const $lyrShadow=$('lyrShadow'), $lyrShadowOut=$('lyrShadowOut');
 
-    $('cardColorHex').textContent = toHex(cc).toUpperCase();
-    $('lyrColorHex').textContent  = toHex(lc).toUpperCase();
-    $('cardAlphaOut').textContent = Math.round(ca*100)+'%';
-    $('lyrAlphaOut').textContent  = Math.round(la*100)+'%';
-    $('radiusOut').textContent    = rad+'px';
+  function applyCardStyle(){
+    const {r,g,b}=hexToRgb($cardColor.value||'#10131b');
+    const a=Math.max(0,Math.min(100,Number($cardAlpha.value)))/100;
+    document.documentElement.style.setProperty('--card-backdrop',`rgba(${r},${g},${b},${a})`);
+    document.documentElement.style.setProperty('--card-blur',($cardBlur.value||8)+'px');
+    document.documentElement.style.setProperty('--card-shadow',shadowVal($cardShadow.value||35));
+    $cardColorHex.textContent = ($cardColor.value||'#10131b').toUpperCase();
+    $cardAlphaOut.textContent = ($cardAlpha.value||0)+'%';
+    $cardBlurOut.textContent  = ($cardBlur.value||0)+'px';
+    $cardShadowOut.textContent= ($cardShadow.value||0);
   }
-  function toHex(v){ v=String(v||'').trim(); return v.startsWith('#')?v:('#'+v); }
-  function hexToRgb(hex){ const m=toHex(hex).replace('#',''); const v=(m.length===3?m.split('').map(x=>x+x).join(''):m); const n=parseInt(v,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function applyLyricStyle(){
+    const {r,g,b}=hexToRgb($lyrColor.value||'#10131b');
+    const a=Math.max(0,Math.min(100,Number($lyrAlpha.value)))/100;
+    document.documentElement.style.setProperty('--lyr-backdrop',`rgba(${r},${g},${b},${a})`);
+    document.documentElement.style.setProperty('--lyr-blur',($lyrBlur.value||8)+'px');
+    document.documentElement.style.setProperty('--lyr-shadow',shadowVal($lyrShadow.value||25));
+    $lyrColorHex.textContent = ($lyrColor.value||'#10131b').toUpperCase();
+    $lyrAlphaOut.textContent = ($lyrAlpha.value||0)+'%';
+    $lyrBlurOut.textContent  = ($lyrBlur.value||0)+'px';
+    $lyrShadowOut.textContent= ($lyrShadow.value||0);
+  }
+  [$cardColor,$cardAlpha,$cardBlur,$cardShadow].forEach(el=>el.addEventListener('input', applyCardStyle));
+  [$lyrColor,$lyrAlpha,$lyrBlur,$lyrShadow].forEach(el=>el.addEventListener('input', applyLyricStyle));
 
-  // 패널에서 바꾸면 즉시 반영(로컬)
-  ['cardColor','cardAlpha','lyrColor','lyrAlpha','radius'].forEach(id=>{
-    $(id).addEventListener('input', ()=>{
-      applyVars({
-        cardColor:$('cardColor').value,
-        cardAlpha:$('cardAlpha').value,
-        lyrColor:$('lyrColor').value,
-        lyrAlpha:$('lyrAlpha').value,
-        radius:$('radius').value
-      });
-    });
-  });
-
-  // 프리셋
-  $('presets').addEventListener('click', e=>{
+  const PRESETS={
+    dark:{bg:'#0b0b0f',fg:'#f5f7fb',border:'#243041',panel:'#0f1320',control:'#12172a'},
+    light:{bg:'#f5f7fb',fg:'#0b0b0f',border:'#cfd6e3',panel:'#f0f3fb',control:'#ffffff'},
+    darkA:{bg:'#090b13',fg:'#e9eef7',border:'#1f2a3b',panel:'#0d1222',control:'#12172a'},
+    lightA:{bg:'#eef3ff',fg:'#11131a',border:'#bfd0ee',panel:'#f7faff',control:'#ffffff'}
+  };
+  const $presets=$('presets'), $styleSeg=$('styleSeg');
+  $presets.addEventListener('click', e=>{
     const b=e.target.closest('button'); if(!b) return;
-    [...$('presets').children].forEach(x=>x.classList.remove('active'));
+    [...$presets.children].forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
-    if (b.dataset.preset==='light') {
-      applyVars({ cardColor:'#ffffff', cardAlpha:90, lyrColor:'#ffffff', lyrAlpha:70, radius:$('radius').value });
-    } else {
-      applyVars({ cardColor:'#10131b', cardAlpha:55, lyrColor:'#10131b', lyrAlpha:30, radius:$('radius').value });
-    }
+    const p=PRESETS[b.dataset.preset]||PRESETS.dark;
+    document.documentElement.style.setProperty('--bg',p.bg);
+    document.documentElement.style.setProperty('--fg',p.fg);
+    document.documentElement.style.setProperty('--border',p.border);
+    document.documentElement.style.setProperty('--panel',p.panel);
+    document.documentElement.style.setProperty('--control',p.control);
+  });
+  $styleSeg.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...$styleSeg.children].forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const style=b.dataset.style;
+    const r = (style==='round')?24:10;
+    document.documentElement.style.setProperty('--radius', r+'px');
   });
 
-  // ===== 스타일 읽기(동기화)
+  // 오버레이 링크 복사
+  document.getElementById('copyLink').addEventListener('click', ()=>{
+    const base = location.origin + location.pathname;
+    const url  = base + '?overlay=1&api=' + encodeURIComponent(API_BASE);
+    navigator.clipboard.writeText(url).then(()=>{
+      $status.textContent='오버레이 링크 복사 완료';
+    }).catch(()=>{$status.textContent='복사 실패';});
+  });
+
+  // 가사 팝업 (가사만 표시)
+  document.getElementById('openLyricsPopup').addEventListener('click', ()=>{
+    const w = window.open('', 'lyrics_popup',
+      `width=${Number(localStorage.getItem('lyr_w')||420)},height=${Number(localStorage.getItem('lyr_h')||700)},left=${Number(localStorage.getItem('lyr_l')||50)},top=${Number(localStorage.getItem('lyr_t')||50)},resizable=yes,scrollbars=yes`);
+    if (!w){ alert('브라우저 팝업이 차단되었습니다. 허용 후 다시 시도해 주세요.'); return; }
+
+    const popupHTML = `
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가사</title>
+<style>
+  :root{ --bg:#0b0b0f; --fg:#f5f7fb; --font:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; }
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font)}
+  #wrap{height:100%;box-sizing:border-box;padding:24px 26px;}
+  #lyrics{white-space:pre-wrap;line-height:1.7;font-size:20px;overflow:auto;height:100%;}
+</style>
+</head>
+<body>
+  <div id="wrap"><div id="lyrics">불러오는 중…</div></div>
+<script>
+  const API_BASE = ${JSON.stringify(API_BASE)};
   async function fetchJson(url){
-    const r = await fetch(url, {cache:'no-store'}); return r.json();
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    const t = await res.text(); try{return JSON.parse(t);}catch{return {};}
   }
-  async function loadStyle(){
-    if (!API_STYLE) return;        // 스타일 API가 없으면 로컬 모드
-    try{
-      const s = await fetchJson(API_STYLE + '?action=getStyle');
-      applyVars(s||{});
-    }catch(_){}
-  }
-  loadStyle(); setInterval(loadStyle, 2000); // 2초마다 동기화
-
-  // 스타일 저장
-  $('saveStyle').addEventListener('click', async ()=>{
-    if (!API_STYLE){ $('status').textContent='스타일 API가 없어 로컬로만 적용됩니다.'; return; }
-    const cc=$('cardColor').value.replace('#','');
-    const ca=$('cardAlpha').value;
-    const lc=$('lyrColor').value.replace('#','');
-    const la=$('lyrAlpha').value;
-    const rad=$('radius').value;
-    const url = `${API_STYLE}?action=setStyle&cc=${cc}&ca=${ca}&lc=${lc}&la=${la}&rad=${rad}` + (SAVE_KEY?`&key=${encodeURIComponent(SAVE_KEY)}`:'');
-    try{
-      const res = await fetchJson(url);
-      $('status').textContent = res && res.ok ? '저장 완료(1~2초 내 모든 화면 반영)' : '저장 실패';
-    }catch(_){ $('status').textContent='저장 실패'; }
-  });
-
-  // “현재 스타일 링크” 복사(로컬 전파: 쿼리스트링에 포함)
-  $('copyLink').addEventListener('click', ()=>{
-    const base = location.href.split('?')[0];
-    const params = new URLSearchParams(location.search);
-    // api/sapi/key는 그대로 유지
-    params.set('overlay','1');
-    params.set('cc', $('cardColor').value.replace('#',''));
-    params.set('ca', $('cardAlpha').value);
-    params.set('lc', $('lyrColor').value.replace('#',''));
-    params.set('la', $('lyrAlpha').value);
-    params.set('rad', $('radius').value);
-    const url = `${base}?${params.toString()}`;
-    navigator.clipboard.writeText(url);
-    $('status').textContent='현재 스타일 포함 링크 복사 완료';
-  });
-
-  // URL에 cc/ca/lc/la/rad 있으면 초기 스타일로 사용
-  (function seedFromQS(){
-    const seed = {
-      cardColor: qs.get('cc') ? '#'+qs.get('cc') : undefined,
-      cardAlpha: qs.get('ca') || undefined,
-      lyrColor : qs.get('lc') ? '#'+qs.get('lc') : undefined,
-      lyrAlpha : qs.get('la') || undefined,
-      radius   : qs.get('rad')|| undefined
-    };
-    applyVars(seed);
-  })();
-
-  // ===== 곡 데이터 폴링
   async function tick(){
-    if (!API_NOW) return;
+    if(!API_BASE) return;
     try{
-      const d = await fetchJson(API_NOW);
-      const singer = (d && d.singer) ? String(d.singer).trim() : '';
-      const title  = (d && d.title ) ? String(d.title ).trim()  : '';
-      const lyrics = (d && d.lyrics) ? String(d.lyrics).trim() : '';
-      const cover  = (d && d.coverUrl) ? String(d.coverUrl) : ''; // 있으면 사용
-
-      $title.textContent = title || singer || '체크된 곡이 없습니다';
-      $sub.textContent   = singer ? `${singer}` : '';
-      $lyrics.textContent= lyrics || '가사가 없습니다.';
-
-      if (cover){ $cover.src=cover; $cover.style.display='block'; $coverPh.style.display='none'; }
-      else { $cover.style.display='none'; $coverPh.style.display='grid'; }
+      const d = await fetchJson(API_BASE + '?nocache=' + Date.now());
+      const lyr = (d && d.lyrics) ? String(d.lyrics).trim() : '가사가 없습니다.';
+      document.getElementById('lyrics').textContent = lyr;
     }catch(_){}
   }
   tick(); setInterval(tick, 2000);
+<\/script>
+</body></html>`;
+    w.document.open(); w.document.write(popupHTML); w.document.close();
+
+    const savePos = () => {
+      try{
+        localStorage.setItem('lyr_w', w.outerWidth);
+        localStorage.setItem('lyr_h', w.outerHeight);
+        localStorage.setItem('lyr_l', w.screenX);
+        localStorage.setItem('lyr_t', w.screenY);
+      }catch(_){}
+    };
+    const timer = setInterval(()=>{ if (w && !w.closed) savePos(); else clearInterval(timer); }, 1200);
+  });
+
+  /* ===== 파형 ===== */
+  const wave = document.getElementById('wave');
+  if (wave){
+    const bars=40;
+    const heights = Array.from({length:bars},(_,i)=> 16 + Math.round((Math.sin(i*1.2)*0.5+0.5)*40));
+    const els = heights.map(h=>{
+      const d=document.createElement('div'); d.className='np-barline'; d.style.height=h+'px'; wave.appendChild(d); return d;
+    });
+    let idx=0;
+    setInterval(()=>{ els.forEach((el,i)=> el.classList.toggle('active', i<=idx)); idx=(idx+1)%bars; }, 260);
+  }
+
+  /* ===== 데이터 폴링 (메인) ===== */
+  async function fetchJson(url){
+    const res = await fetch(url, {cache:'no-store'});
+    const ct = res.headers.get('content-type')||'';
+    if (ct.includes('application/json')) return res.json();
+    const t = await res.text(); try{return JSON.parse(t);}catch{throw new Error('Not JSON');}
+  }
+  async function tick(init){
+    if (!API_BASE){
+      if ($title) $title.textContent='API URL을 감지할 수 없어요 (?api= 로 전달하거나 DEFAULT_API 설정)';
+      if ($lyrics) $lyrics.textContent='';
+      if ($status) $status.textContent='API 미설정';
+      return;
+    }
+    try{
+      const data = await fetchJson(API_BASE + '?nocache=' + Date.now());
+      const singer = (data && data.singer) ? String(data.singer).trim() : '';
+      const title  = (data && data.title ) ? String(data.title ).trim()  : '';
+      const lyrics = (data && data.lyrics) ? String(data.lyrics).trim() : '';
+      const cover  = (data && data.coverUrl) ? String(data.coverUrl).trim() : '';
+
+      if ($title) $title.textContent = title || singer || '체크된 곡이 없습니다';
+      if ($sub)   $sub.textContent   = singer ? `${singer} / SING🎤 임하밍` : '';
+      if ($lyrics) $lyrics.textContent = lyrics || '가사가 없습니다.';
+
+      if ($cover && $coverPh){
+        if (cover){ $cover.src=cover; $cover.style.display='block'; $coverPh.style.display='none'; }
+        else { $cover.style.display='none'; $coverPh.style.display='grid'; }
+      }
+      if ($status) $status.textContent='연결 OK';
+    }catch(e){
+      if (init){ $title && ($title.textContent='불러오기에 실패했어요'); $sub && ($sub.textContent=''); $lyrics && ($lyrics.textContent=''); }
+      $status && ($status.textContent='연결 실패');
+      console.error(e);
+    }
+  }
+
+  applyCardStyle(); applyLyricStyle();
+  tick(true); setInterval(tick, 2000);
 })();
 </script>
 </body>
